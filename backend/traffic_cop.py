@@ -14,6 +14,7 @@ try:
     from agents.radical_expander import run_radical_expander
     from agents.product_agent import run_product_agent
     from agents.debate_agent import run_debate_agent
+    from agents.skeptical_agent import run_skeptical_agent
     # Import other agents here if/when added
     logger.info("Successfully imported agent functions using absolute paths.")
 except ImportError as e:
@@ -22,6 +23,7 @@ except ImportError as e:
     async def run_radical_expander(*args, **kwargs): logger.error("Radical Expander not loaded"); await args[-1]({"type":"error", "agent": "Radical Expander", "message":"Not loaded"}) # Assume broadcaster is last arg
     async def run_product_agent(*args, **kwargs): logger.error("Product Agent not loaded"); await args[-1]({"type":"error", "agent": "Wild Product Agent", "message":"Not loaded"})
     async def run_debate_agent(*args, **kwargs): logger.error("Debate Agent not loaded"); await args[-1]({"type":"error", "agent": "Debate Agent", "message":"Not loaded"})
+    async def run_skeptical_agent(*args, **kwargs): logger.error("Skeptical Agent not loaded"); await args[-1]({"type":"error", "agent": "Skeptical Agent", "message":"Not loaded"})
 
 
 # --- Agent Routing Configuration ---
@@ -29,11 +31,15 @@ except ImportError as e:
 LLM_ROUTABLE_AGENTS = {
     "Radical Expander": run_radical_expander,
     "Wild Product Agent": run_product_agent,
+    "Skeptical Agent": run_skeptical_agent,
     # Add other LLM-routable agents here
 }
 
 # Define explicit trigger phrases for Debate Agent
 DEBATE_AGENT_TRIGGERS = ["debate agent", "analyze conflict"] # Case-insensitive check later
+
+# Define explicit trigger phrases for Skeptical Agent
+SKEPTICAL_AGENT_TRIGGERS = ["skeptical agent", "devil's advocate", "critique this", "what could go wrong"] # Case-insensitive check later
 
 # --- Traffic Cop Core Logic ---
 
@@ -51,6 +57,11 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     if any(phrase in transcript_text.lower() for phrase in DEBATE_AGENT_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for Debate Agent")
         return "Debate Agent" # Return specific name
+        
+    # Check for Explicit Triggers (Skeptical Agent)
+    if any(phrase in transcript_text.lower() for phrase in SKEPTICAL_AGENT_TRIGGERS):
+        logger.info(f"--- Explicit trigger detected for Skeptical Agent")
+        return "Skeptical Agent" # Return specific name
 
     # 2. If no explicit trigger, proceed with content-based routing (if model available)
     if not model:
@@ -81,20 +92,26 @@ Available Agents (Choose ONE or None):
     - New product/service concepts or ideas.
     - Ways to improve existing products/services for customers.
     - Customer needs, problems, or feedback related to our offerings.
+- Skeptical Agent: Triggered by discussions where someone proposes an idea, plan, or solution that would benefit from critical analysis. Examples include:
+    - When a new initiative is being proposed and benefits are emphasized without considering difficulties.
+    - During discussions about resource allocation or investment decisions.
+    - When significant organizational changes are proposed.
+    - During discussions that seem overly optimistic without addressing risks.
+    This agent identifies potential challenges, assumptions, and risks that might not have been considered.
 
 Transcript Segment:
 "{transcript_text}"
 
-Examples of Routing Decisions (Pay close attention to internal vs. external focus):
+Examples of Routing Decisions:
 - "Our weekly status meetings are incredibly inefficient and waste a lot of time." -> Radical Expander (internal process)
 - "What new AI-powered tools could help us automate expense reporting for employees?" -> Radical Expander (internal process)
 - "Should we offer a personalized meal planning subscription service to our customers?" -> Wild Product Agent (external service)
 - "Customer churn is way too high; we need to reduce it for our premium product." -> Wild Product Agent (external product/service)
 - "Should we completely reimagine our sales compensation structure for our sales team?" -> Radical Expander (internal structure/process)
-- "Could we develop an AI-powered personal shopping assistant feature for our website users?" -> Wild Product Agent (external feature)
-- "How can we streamline the employee onboarding process for new hires?" -> Radical Expander (internal process)
-- "We're getting a lot of negative feedback about the mobile app's user interface." -> Wild Product Agent (external product)
-- "Is our current agile project management methodology still effective for our engineering teams?" -> Radical Expander (internal process)
+- "I propose implementing a companywide AI assistant for all employees to boost productivity." -> Skeptical Agent (new initiative that needs critical examination)
+- "The plan is to roll out the new system to all departments simultaneously next month." -> Skeptical Agent (ambitious plan that may overlook challenges)
+- "Our competitors aren't a concern since our new feature is revolutionary and they can't catch up." -> Skeptical Agent (potentially overlooking market realities)
+- "We should migrate all our systems to this new technology immediately." -> Skeptical Agent (potential implementation challenges)
 
 Which agent from the list above is the MOST relevant for this specific segment? Output ONLY the name of the chosen agent or the word "None".
 """
@@ -167,6 +184,7 @@ async def trigger_agent(
         "Radical Expander": run_radical_expander,
         "Wild Product Agent": run_product_agent,
         "Debate Agent": run_debate_agent,
+        "Skeptical Agent": run_skeptical_agent,
         # Add mappings for other agents if/when imported
     }
 
