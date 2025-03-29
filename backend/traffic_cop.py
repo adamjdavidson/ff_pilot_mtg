@@ -15,6 +15,7 @@ try:
     from agents.product_agent import run_product_agent
     from agents.debate_agent import run_debate_agent
     from agents.skeptical_agent import run_skeptical_agent
+    from agents.one_small_thing_agent import run_one_small_thing_agent
     # Import other agents here if/when added
     logger.info("Successfully imported agent functions using absolute paths.")
 except ImportError as e:
@@ -24,6 +25,7 @@ except ImportError as e:
     async def run_product_agent(*args, **kwargs): logger.error("Product Agent not loaded"); await args[-1]({"type":"error", "agent": "Wild Product Agent", "message":"Not loaded"})
     async def run_debate_agent(*args, **kwargs): logger.error("Debate Agent not loaded"); await args[-1]({"type":"error", "agent": "Debate Agent", "message":"Not loaded"})
     async def run_skeptical_agent(*args, **kwargs): logger.error("Skeptical Agent not loaded"); await args[-1]({"type":"error", "agent": "Skeptical Agent", "message":"Not loaded"})
+    async def run_one_small_thing_agent(*args, **kwargs): logger.error("One Small Thing Agent not loaded"); await args[-1]({"type":"error", "agent": "One Small Thing", "message":"Not loaded"})
 
 
 # --- Agent Routing Configuration ---
@@ -32,6 +34,7 @@ LLM_ROUTABLE_AGENTS = {
     "Radical Expander": run_radical_expander,
     "Wild Product Agent": run_product_agent,
     "Skeptical Agent": run_skeptical_agent,
+    "One Small Thing": run_one_small_thing_agent,
     # Add other LLM-routable agents here
 }
 
@@ -40,6 +43,9 @@ DEBATE_AGENT_TRIGGERS = ["debate agent", "analyze conflict"] # Case-insensitive 
 
 # Define explicit trigger phrases for Skeptical Agent
 SKEPTICAL_AGENT_TRIGGERS = ["skeptical agent", "devil's advocate", "critique this", "what could go wrong"] # Case-insensitive check later
+
+# Define explicit trigger phrases for One Small Thing Agent
+ONE_SMALL_THING_TRIGGERS = ["one small thing", "first step", "where to start", "how to begin", "quick win"] # Case-insensitive check later
 
 # --- Traffic Cop Core Logic ---
 
@@ -62,6 +68,11 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     if any(phrase in transcript_text.lower() for phrase in SKEPTICAL_AGENT_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for Skeptical Agent")
         return "Skeptical Agent" # Return specific name
+        
+    # Check for Explicit Triggers (One Small Thing Agent)
+    if any(phrase in transcript_text.lower() for phrase in ONE_SMALL_THING_TRIGGERS):
+        logger.info(f"--- Explicit trigger detected for One Small Thing Agent")
+        return "One Small Thing" # Return specific name
 
     # 2. If no explicit trigger, proceed with content-based routing (if model available)
     if not model:
@@ -98,6 +109,12 @@ Available Agents (Choose ONE or None):
     - When significant organizational changes are proposed.
     - During discussions that seem overly optimistic without addressing risks.
     This agent identifies potential challenges, assumptions, and risks that might not have been considered.
+- One Small Thing: Triggered by discussions about implementing AI where participants need practical next steps. Examples include:
+    - When participants express interest in AI but aren't sure where to start.
+    - During discussions about AI capabilities that could immediately benefit their work.
+    - When participants want to implement AI but are concerned about complexity or risk.
+    - During conversations where immediate, practical action items would be valuable.
+    This agent suggests one concrete, immediately implementable first step to begin an AI journey.
 
 Transcript Segment:
 "{transcript_text}"
@@ -112,6 +129,10 @@ Examples of Routing Decisions:
 - "The plan is to roll out the new system to all departments simultaneously next month." -> Skeptical Agent (ambitious plan that may overlook challenges)
 - "Our competitors aren't a concern since our new feature is revolutionary and they can't catch up." -> Skeptical Agent (potentially overlooking market realities)
 - "We should migrate all our systems to this new technology immediately." -> Skeptical Agent (potential implementation challenges)
+- "We're interested in using AI for customer service, but we're not sure where to start." -> One Small Thing (need for practical first step)
+- "How could we begin using AI in our HR processes without a big investment?" -> One Small Thing (looking for an entry point)
+- "I'm concerned about implementing AI because it seems so complex." -> One Small Thing (needs a simple starting point)
+- "What would be the quickest way to see some value from AI in our operations?" -> One Small Thing (seeking quick wins)
 
 Which agent from the list above is the MOST relevant for this specific segment? Output ONLY the name of the chosen agent or the word "None".
 """
@@ -185,6 +206,7 @@ async def trigger_agent(
         "Wild Product Agent": run_product_agent,
         "Debate Agent": run_debate_agent,
         "Skeptical Agent": run_skeptical_agent,
+        "One Small Thing": run_one_small_thing_agent,
         # Add mappings for other agents if/when imported
     }
 
