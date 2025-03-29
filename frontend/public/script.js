@@ -201,9 +201,20 @@ function addInsightCard(insightData) {
     cardContent.className = 'card-content';
     cardContent.innerHTML = formatContent(content);
     
+    // Add expand button
+    const expandBtn = document.createElement('button');
+    expandBtn.className = 'expand-btn';
+    expandBtn.textContent = 'Read More';
+    expandBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cardContent.classList.toggle('expanded');
+        expandBtn.textContent = cardContent.classList.contains('expanded') ? 'Show Less' : 'Read More';
+    });
+    
     // Assemble card
     card.appendChild(cardHeader);
     card.appendChild(cardContent);
+    card.appendChild(expandBtn);
     
     // Add to container with animation
     card.style.opacity = '0';
@@ -604,7 +615,18 @@ function stopAudioProcessing() {
 function convertAgentClassname(agent) {
     if (!agent) return 'unknown';
     
-    return agent.toLowerCase()
+    // Agent name to CSS class mapping
+    const agentClassMap = {
+        'Radical Expander': 'radical-expander',
+        'Wild Product Agent': 'wild-product',
+        'Skeptical Agent': 'skeptical',
+        'Debate Agent': 'debate',
+        'One Small Thing': 'one-small-thing',
+        'Disruptor': 'disruptor'
+    };
+    
+    // Return mapped class if available, otherwise convert from agent name
+    return agentClassMap[agent] || agent.toLowerCase()
         .replace(/\s+/g, '-') // Replace spaces with hyphens
         .replace(/[^a-z0-9-]/g, ''); // Remove any non-alphanumeric characters except hyphens
 }
