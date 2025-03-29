@@ -32,37 +32,44 @@ async def run_disruptor_agent(text: str, model: GenerativeModel, broadcaster: ca
         return
 
     # Customize the standardized prompt for this specific agent
-    specific_content = "a radical AI-first business model that could completely redefine the industry or business area being discussed"
+    specific_content = "a radical AI-first business model that could completely disrupt and redefine the industry being discussed"
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create a provocative headline for your AI-first disruptor concept",
-        summary="Briefly summarize how an AI-first startup could disrupt this industry",
-        analysis="Provide structured details with these sections:\n\n**Industry Identified:** Identify the industry or business area\n\n**AI-First Disruptor Concept:** 2-3 sentence pitch for a hypothetical AI-first startup\n\n**Unfair Advantages:**\n• Bullet point on technology leverage\n• Bullet point on business model innovation\n• Bullet point on market approach\n\n**Established Players Vulnerability:** Why traditional players would struggle to compete"
+        headline="How This AI Startup Will Revolutionize [Industry]",
+        summary="Describe in one sentence how this AI-first business model will disrupt the industry",
+        analysis="**Industry Identified:** Clearly identify the specific industry or business area from the transcript\n\n**The Disruptive Concept:** Explain your revolutionary AI-powered business model in 2-3 sentences\n\n**Unfair Advantages:**\n• Technical advantage: How advanced AI provides capabilities incumbents can't match\n• Business model innovation: How this approach fundamentally changes the economics\n• Market approach: How this startup captures market share rapidly\n\n**Why Incumbents Will Fail:** Explain why established players cannot adapt quickly enough"
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""You are the "Disruptor" AI agent for business meetings. Your role is to identify how a hypothetical AI-first startup could fundamentally disrupt the specific industry or business area being discussed in the meeting.
+    full_prompt = f"""You are DISRUPTOR, an elite strategic advisor who identifies how AI-first startups can completely obliterate existing business models in established industries.
 
-Review this meeting transcript segment:
+TRANSCRIPT SEGMENT:
 "{text}"
 
-IMPORTANT CONTEXT INSTRUCTIONS:
-1. Be creative in identifying industries or business areas that could relate to the transcript.
-2. Your disruption scenario should connect to themes or concepts mentioned in the discussion.
-3. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing that could suggest an industry.
-4. Feel free to identify potential business domains even when they're only implied in the conversation.
+YOUR APPROACH:
+1. First, carefully identify a specific industry or business domain mentioned or implied in the transcript
+2. Envision a revolutionary AI-first startup that would make incumbent businesses obsolete
+3. Focus on creating a coherent, complete disruption scenario - not just technology ideas
+4. Your headline MUST be a complete sentence in this format: "How This AI Startup Will Revolutionize [Industry]"
+5. Be bold, ambitious, and ruthlessly specific about how this disruption works
+6. Only respond with "NO_BUSINESS_CONTEXT" if there is absolutely no hint of any industry or business activity
 
-Your task is to identify the industry or business process being discussed, then envision a radical AI-first business model that could completely redefine this space and outcompete established players.
+CRITICAL REQUIREMENTS:
+- Your concept must describe a comprehensive business model, not just a technology
+- Create a complete, coherent narrative that explains exactly how the disruption works
+- Your headline must be a proper, grammatical sentence (not just a phrase)
+- Make sure every part of your response is consistent with the industry you identified
+- Ensure your unfair advantages directly connect to the specific business model
 
 {prompt}
 
-Be focused, provocative, and specific. Think about fundamentally different approaches enabled by AI that would make traditional business models obsolete. Focus on 10x improvements, not marginal gains."""
+Remember: Be provocative, specific, and coherent. Focus on clear, revolutionary business models that would terrify incumbent executives."""
 
     # --- API Call Configuration ---
     generation_config = {
-        "temperature": 0.5,  # Reduced temperature for more focus while maintaining creativity
-        "max_output_tokens": 350,  # Allow space for detailed disruption concept
+        "temperature": 0.7,  # Balanced between creativity and coherence
+        "max_output_tokens": 400,  # Allow space for detailed disruption concept
     }
 
     safety_settings = {

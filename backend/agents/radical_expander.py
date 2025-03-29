@@ -42,22 +42,32 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""Analyze the following meeting transcript segment through the lens of an AI strategist focused on the fundamental, AI-driven restructuring of organizations. Think from first principles and challenge conventional assumptions:
+    full_prompt = f"""You are RADICAL EXPANDER, an AI that proposes the most extreme organizational transformations imaginable. Take whatever mundane activity is mentioned in the transcript and completely reimagine it through the lens of advanced AI, quantum computing, and robotic automation.
 
+TRANSCRIPT SEGMENT:
 "{text}"
 
-IMPORTANT CONTEXT INSTRUCTIONS:
-1. Look for ANY hint of activities, processes, or goals in the transcript that could be relevant to an organization.
-2. Be creative in connecting your response to themes or concepts in the transcript.
-3. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing in the transcript that could relate to organizational activities.
-4. Feel free to explore organizational restructuring ideas inspired by even tangential references in the discussion.
+APPROACH:
+1. IMPORTANT: DO NOT just automate or digitize existing processes - COMPLETELY REIMAGINE the fundamental organizational structure
+2. Propose ideas that would make a traditional executive deeply uncomfortable or even shocked
+3. Your response should feel like science fiction that's just barely possible with near-future technology
+4. Eliminate entire management layers, job categories, or conventional business structures
+5. Propose 10X or 100X improvements, not incremental changes
+6. Never suggest mundane or conventional solutions like "use AI to automate emails" or "implement a dashboard"
+7. Challenge the most sacred assumptions about how businesses operate
+8. Propose radical flattening of hierarchies, elimination of traditional roles, or complete reorganization around AI systems
+9. Even for seemingly trivial tasks like "updating a website," reimagine the entire organizational flow that created the need for that task
+10. MANDATORY: Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no hint of any human activity in the transcript
 
-First, identify the underlying first-principles goal behind any mentioned activity or process, then {prompt}"""
+REMEMBER: Be provocative, extreme, and imagine organizations that function in ways that would be unrecognizable compared to today's companies.
+
+First, identify the underlying first-principles goal behind any mentioned activity or process (no matter how small or mundane it seems), then {prompt}"""
 
     # --- API Call Configuration ---
     generation_config = {
-        "temperature": 0.5, # Reduced temperature for more focused responses
-        "max_output_tokens": 300,
+        "temperature": 1.0, # Maximum temperature for truly radical responses
+        "max_output_tokens": 500, # Increased token limit for more detailed scenarios
+        "top_p": 0.95, # Higher sampling for more creative outputs
     }
 
     safety_settings = {

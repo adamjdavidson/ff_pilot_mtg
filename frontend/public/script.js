@@ -122,12 +122,49 @@ function handleMessage(messageData) {
     }
     
     if (messageData.type === "insight") {
+        // Check if the content appears to be an error or "not enough context" message
+        // This is a second safety check in case backend still sends these through
+        const content = messageData.content || "";
+        const lowerContent = content.toLowerCase();
+        
+        // Filter out various error messages or non-relevant content
+        if (lowerContent.includes("insufficient context") || 
+            lowerContent.includes("no business context") || 
+            lowerContent.includes("not enough context") ||
+            lowerContent.includes("no context") ||
+            lowerContent.includes("doesn't contain") ||
+            lowerContent.includes("does not contain") ||
+            lowerContent.includes("doesn't provide") ||
+            lowerContent.includes("does not provide") ||
+            content.includes("NO_BUSINESS_CONTEXT")) {
+            // Silently ignore these messages
+            console.log(`Filtering out insufficient context message from ${messageData.agent}`);
+            return;
+        }
+        
+        // Also filter out messages that are too short to be meaningful
+        if (content.length < 50) {
+            console.log(`Filtering out too-short message from ${messageData.agent}: "${content}"`);
+            return;
+        }
+        
+        // Check if the content appears to be bland or generic
+        if (lowerContent.includes("i apologize") || 
+            lowerContent.includes("i'm sorry") || 
+            lowerContent.includes("i am sorry") ||
+            lowerContent.includes("unable to generate")) {
+            console.log(`Filtering out apologetic or generic message from ${messageData.agent}`);
+            return;
+        }
+        
+        // Process valid insight
         addInsightCard(messageData);
         playSound(messageData.agent);
     } 
     else if (messageData.type === "error") {
-        showError(messageData.message || "Unknown error occurred", messageData.agent);
-        playSound("error");
+        // Silently ignore error messages - don't show cards for errors
+        console.error(`Error from ${messageData.agent}: ${messageData.message || "Unknown error"}`);
+        // Don't show a card and don't play a sound
     }
     else if (messageData.type === "silent_error") {
         // Log the error in console but don't display it to the user

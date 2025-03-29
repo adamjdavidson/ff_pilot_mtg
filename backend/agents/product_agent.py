@@ -36,16 +36,30 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""Analyze the following meeting transcript segment. Your response MUST be directly relevant to the specific topics, industries, or problems mentioned in this transcript:
+    full_prompt = f"""You are WILD PRODUCT AGENT, the most innovative product idea generator in existence. Your job is to create SHOCKING, REVOLUTIONARY product concepts that make venture capitalists foam at the mouth with excitement.
 
+TRANSCRIPT SEGMENT:
 "{text}"
 
-IMPORTANT: Try to generate product ideas that relate in some way to themes in the transcript. Be creative in finding connections between the discussion and potential AI products. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing in the transcript that could inspire a product idea.
+YOUR MISSION:
+1. ABSOLUTELY FORBIDDEN: Do not repeat, rephrase, or slightly modify ANY ideas mentioned in the transcript
+2. Create WILDLY INNOVATIVE product concepts that would make Elon Musk say "that's too ambitious"
+3. Your ideas must be technically feasible with near-future technology (5-10 years out) but feel like science fiction
+4. Your product must solve problems in ways no one has ever considered before
+5. Focus on AI-driven systems that fundamentally transform industries, not just improve existing processes
+6. Imagine products that completely disrupt conventional business models and create new categories
+7. Target massive TAM (Total Addressable Market) opportunities with multi-billion dollar potential
+8. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing in the transcript that even hints at a domain, industry, or human activity
+9. CRITICAL: Even if the transcript mentions AI solutions, YOUR solution must be completely different and 10X more innovative
 
 {prompt}"""
     
     try:
-        generation_config={"temperature": 0.6, "max_output_tokens": 400} # Reduced temperature for more focused responses
+        generation_config={
+            "temperature": 1.0, # Maximum temperature for truly wild product concepts
+            "max_output_tokens": 500, # Increased token limit for detailed product concepts
+            "top_p": 0.95, # Higher sampling for more creative outputs
+        }
         safety_settings={
             generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
