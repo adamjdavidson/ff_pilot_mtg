@@ -238,6 +238,10 @@ h1, h2, h3, h4, h5, h6 {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-content: flex-start;
 }
 
 /* Empty States */
@@ -249,6 +253,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 3rem 1rem;
     color: var(--text-secondary);
     text-align: center;
+    width: 100%;
 }
 
 .empty-state i {
@@ -261,18 +266,33 @@ h1, h2, h3, h4, h5, h6 {
 .insight-card {
     background-color: var(--white);
     border-radius: var(--radius-md);
-    margin-bottom: 1.5rem;
     box-shadow: var(--shadow-md);
     overflow: hidden;
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
     animation: slideIn 0.5s ease;
     position: relative;
-    border-top: 4px solid transparent;
+    width: calc(33.333% - 1rem);
+    min-width: 300px;
+    max-width: 400px;
+    height: fit-content;
+    margin-bottom: 0;
+    border: none;
+    transform-origin: center;
+    transform: rotate(0deg);
+}
+
+.insight-card:nth-child(3n+1) {
+    transform: rotate(-1deg);
+}
+
+.insight-card:nth-child(3n+2) {
+    transform: rotate(1deg);
 }
 
 .insight-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-5px) rotate(0);
     box-shadow: var(--shadow-lg);
+    z-index: 2;
 }
 
 @keyframes slideIn {
@@ -349,49 +369,77 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Agent-specific styling */
 .agent-radical-expander {
-    border-color: var(--color-radical);
+    background-color: rgba(138, 79, 255, 0.08);
+    border-left: 5px solid var(--color-radical);
+}
+.agent-radical-expander .card-header {
+    background-color: rgba(138, 79, 255, 0.12);
 }
 .agent-radical-expander .agent-icon {
     background-color: var(--color-radical);
 }
 
 .agent-wild-product {
-    border-color: var(--color-product);
+    background-color: rgba(0, 194, 163, 0.08);
+    border-left: 5px solid var(--color-product);
+}
+.agent-wild-product .card-header {
+    background-color: rgba(0, 194, 163, 0.12);
 }
 .agent-wild-product .agent-icon {
     background-color: var(--color-product);
 }
 
 .agent-skeptical {
-    border-color: var(--color-skeptical);
+    background-color: rgba(255, 159, 28, 0.08);
+    border-left: 5px solid var(--color-skeptical);
+}
+.agent-skeptical .card-header {
+    background-color: rgba(255, 159, 28, 0.12);
 }
 .agent-skeptical .agent-icon {
     background-color: var(--color-skeptical);
 }
 
 .agent-debate {
-    border-color: var(--color-debate);
+    background-color: rgba(255, 90, 95, 0.08);
+    border-left: 5px solid var(--color-debate);
+}
+.agent-debate .card-header {
+    background-color: rgba(255, 90, 95, 0.12);
 }
 .agent-debate .agent-icon {
     background-color: var(--color-debate);
 }
 
 .agent-one-small-thing {
-    border-color: var(--color-one-small-thing);
+    background-color: rgba(61, 165, 255, 0.08);
+    border-left: 5px solid var(--color-one-small-thing);
+}
+.agent-one-small-thing .card-header {
+    background-color: rgba(61, 165, 255, 0.12);
 }
 .agent-one-small-thing .agent-icon {
     background-color: var(--color-one-small-thing);
 }
 
 .agent-disruptor {
-    border-color: var(--color-disruptor);
+    background-color: rgba(217, 26, 96, 0.08);
+    border-left: 5px solid var(--color-disruptor);
+}
+.agent-disruptor .card-header {
+    background-color: rgba(217, 26, 96, 0.12);
 }
 .agent-disruptor .agent-icon {
     background-color: var(--color-disruptor);
 }
 
 .agent-error {
-    border-color: var(--color-error);
+    background-color: rgba(229, 62, 62, 0.08);
+    border-left: 5px solid var(--color-error);
+}
+.agent-error .card-header {
+    background-color: rgba(229, 62, 62, 0.12);
 }
 .agent-error .agent-icon {
     background-color: var(--color-error);
@@ -470,6 +518,12 @@ body::before {
     }
 }
 
+@media (max-width: 1200px) {
+    .insight-card {
+        width: calc(50% - 1rem);
+    }
+}
+
 @media (max-width: 900px) {
     .app-container {
         flex-direction: column;
@@ -487,7 +541,12 @@ body::before {
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .insight-card {
+        width: 100%;
+        min-width: 100%;
+    }
+    
     .app-header {
         flex-direction: column;
         gap: 1rem;
@@ -499,7 +558,9 @@ body::before {
         align-items: flex-start;
         gap: 1rem;
     }
-    
+}
+
+@media (max-width: 600px) {
     .card-header {
         flex-direction: column;
         align-items: flex-start;
