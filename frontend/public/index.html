@@ -4,14 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Meeting Assistant</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>AI Meeting Assistant</h1>
-    <div id="connection-status">Connecting...</div>
-    <div id="insights">
-        </div>
+    <div class="app-container">
+        <!-- Sidebar for saved insights -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Saved Insights</h3>
+                <button id="clear-saved" class="clear-btn" title="Clear all saved insights">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div id="saved-insights" class="saved-insights-container">
+                <!-- Saved insights will be added here -->
+                <div class="empty-state">
+                    <i class="fas fa-bookmark"></i>
+                    <p>Save important insights here</p>
+                </div>
+            </div>
+        </aside>
 
+        <!-- Main content area -->
+        <main class="main-content">
+            <header class="app-header">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h1>AI Meeting Assistant</h1>
+                </div>
+                <div class="status-container">
+                    <div id="connection-status" class="connection-status">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>Connecting...</span>
+                    </div>
+                    <div id="mic-status" class="mic-status">
+                        <i class="fas fa-microphone-slash"></i>
+                        <span>Microphone inactive</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="insights-header">
+                <h2>Meeting Insights</h2>
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="Radical Expander">Radical</button>
+                    <button class="filter-btn" data-filter="Wild Product Agent">Product</button>
+                    <button class="filter-btn" data-filter="Skeptical Agent">Skeptical</button>
+                    <button class="filter-btn" data-filter="Debate Agent">Debate</button>
+                    <button class="filter-btn" data-filter="One Small Thing">Steps</button>
+                    <button class="filter-btn" data-filter="Disruptor">Disruptor</button>
+                </div>
+            </div>
+
+            <div id="insights" class="insights-container">
+                <!-- Insights will be added here dynamically -->
+                <div class="empty-state" id="empty-insights">
+                    <i class="fas fa-comment-dots"></i>
+                    <p>Waiting for conversation insights...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Audio elements for agent sounds -->
+    <audio id="sound-radical" src="sounds/radical.mp3" preload="auto"></audio>
+    <audio id="sound-product" src="sounds/product.mp3" preload="auto"></audio>
+    <audio id="sound-skeptical" src="sounds/skeptical.mp3" preload="auto"></audio>
+    <audio id="sound-debate" src="sounds/debate.mp3" preload="auto"></audio>
+    <audio id="sound-one-small-thing" src="sounds/one-small-thing.mp3" preload="auto"></audio>
+    <audio id="sound-disruptor" src="sounds/disruptor.mp3" preload="auto"></audio>
+    <audio id="sound-error" src="sounds/error.mp3" preload="auto"></audio>
+    
     <script src="script.js"></script>
 </body>
 </html>
