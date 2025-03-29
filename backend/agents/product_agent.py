@@ -1,7 +1,8 @@
-# backend/agents/product_agent.py (Corrected insight_type)
+# backend/agents/product_agent.py
 import logging
 from vertexai.generative_models import GenerativeModel, Part, FinishReason
 import vertexai.generative_models as generative_models
+from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
 
 logger = logging.getLogger("main")
 
@@ -16,95 +17,78 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
     logger.info(f">>> Running {agent_name} Agent...")
     if not model: logger.error(f"[{agent_name}] Failed: Gemini model instance not provided."); return
     if not broadcaster: logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided."); return
-    if not text or len(text.strip()) < 10: logger.warning(f"[{agent_name}] Skipped: Input text too short."); return # Add check
+    if not text or len(text.strip()) < 15: # Reduced minimum length requirement
+        logger.warning(f"[{agent_name}] Skipped: Input text too short or insufficient context: '{text[:50]}...'");
+        try:
+            await format_agent_response(agent_name, "Insufficient context to invent a meaningful product concept.", broadcaster, "error")
+        except Exception as broadcast_err:
+            logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
+        return
 
-    prompt = f"""
-You are an AI 'Wild Product Inventor'. Your goal is to listen to meeting discussions about existing products/services, new product explorations, or unaddressed customer problems, and invent entirely new, potentially paradigm-shifting products or services enabled by advanced AI. Think far beyond incremental improvements and focus on how AI enables fundamentally new ways to create, deliver, or experience products/services.
+    # Customize the standardized prompt for this specific agent
+    specific_content = "wildly new AI-enabled product ideas with market potential, realism assessment, and estimated timeframe"
+    
+    prompt = STANDARDIZED_PROMPT_FORMAT.format(
+        specific_content=specific_content,
+        headline="Write a catchy headline for your product idea",
+        summary="Provide a 1-2 sentence summary of your product idea",
+        analysis="Detailed description of your wildly new product/service concept\n\n**Market Potential:** Your estimate of market size/potential\n**Realism:** Your assessment of feasibility\n**Timeframe:** Your estimated timeline for implementation"
+    )
+    
+    # Add the transcript to the prompt with stronger context relevance requirements
+    full_prompt = f"""Analyze the following meeting transcript segment. Your response MUST be directly relevant to the specific topics, industries, or problems mentioned in this transcript:
 
-Analyze the following meeting transcript segment (which the Traffic Cop has deemed relevant):
 "{text}"
 
-Based SOLELY on this segment and your general knowledge:
+IMPORTANT: Try to generate product ideas that relate in some way to themes in the transcript. Be creative in finding connections between the discussion and potential AI products. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing in the transcript that could inspire a product idea.
 
-1.  **Invent:** Describe the SINGLE BEST (or at most two) 'wildly new' product or service concept enabled by AI, inspired by the transcript segment. Be creative, provocative, and focus on fundamental shifts.
-2.  **Provide Estimates:** For the invented concept(s), provide the following as *very rough, speculative, casual estimates*:
-    * **Market Potential:** (e.g., "Potentially a multi-million dollar niche," "Could be a multi-billion dollar market if successful," "High volume, low margin possibility," "Low volume, high price point")
-    * **Realism:** ("Highly speculative," "Likely idea (with significant AI development)," or "Unlikely idea (major breakthroughs needed)")
-    * **Timeframe:** (e.g., "Timeline: 1-3 years," "Timeline: 2-4 years, depending on AI progress," "Timeline: 3-5+ years")
-3.  **Format Output:** Structure your response clearly, like the example below.
-
-**--- BEGIN EXAMPLE OUTPUT FORMAT (Use this structure) ---**
-
-**Wild Product Idea:** [Concise description of the wildly new product/service concept and how AI enables it.]
-**Market Potential:** [Your casual estimate of market size/type, e.g., "Multi-billion dollar potential by disrupting X industry."]
-**Realism:** [Your assessment, e.g., "Likely idea (with significant AI development)"]
-**Timeframe:** [Your estimated range, e.g., "Timeline: 2-4 years, depending on AI progress"]
-
-**(Optional: Add a second idea here if truly distinct and valuable, using the same format)**
-
-**--- END EXAMPLE OUTPUT FORMAT ---**
-"""
+{prompt}"""
+    
     try:
-        generation_config={"temperature": 0.8, "max_output_tokens": 400}
+        generation_config={"temperature": 0.6, "max_output_tokens": 400} # Reduced temperature for more focused responses
         safety_settings={
             generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
         }
+        
         logger.info(f"[{agent_name}] Sending request to Gemini model...")
         response = await model.generate_content_async(
-            prompt,
+            full_prompt,
             generation_config=generation_config,
             safety_settings=safety_settings
         )
         logger.debug(f"[{agent_name}] Raw response: {response}")
 
-        generated_content = ""
-        insight_type = "insight" # CHANGED to "insight"
-
         if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
             logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-            generated_content = "[Blocked due to safety settings]"
-            insight_type = "error"
+            # Don't send error card
+            return
         elif response.text:
             generated_text = response.text.strip()
             if not generated_text:
-                 logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
-                 generated_content = "[Empty response received]"
-                 insight_type = "error"
+                logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
+                # Don't send error card
+                return
+            # Only check for explicit insufficient context marker
+            elif generated_text.lower() == "no_business_context":
+                logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
+                # Don't send any response card when explicitly marked as no context
+                return
             else:
-                 logger.info(f"[{agent_name}] Successfully generated product idea.")
+                logger.info(f"[{agent_name}] Successfully generated product idea.")
+                await format_agent_response(agent_name, generated_text, broadcaster, "insight")
         else:
             finish_reason = response.candidates[0].finish_reason if response.candidates else 'N/A'
             logger.warning(f"[{agent_name}] Generation produced no text content. Finish Reason: {finish_reason}")
-            generated_content = "[No content generated]"
-            insight_type = "error"
-
-        # --- Broadcast Result (Formatted) ---
-        if insight_type == "error":
-            # For errors, don't try to format generated_text which might not exist
-            formatted_content = generated_content
-        else:
-            # For successful insights, properly format the content
-            formatted_content = f"Wild Product Idea:\n\n{generated_text}"
-
-        insight_data = {
-            "type": insight_type,
-            "agent": agent_name,
-            "content": formatted_content
-        }
-        await broadcaster(insight_data)
-        logger.info(f"[{agent_name}] Broadcast sent: Type={insight_type}")
+            # Don't send error card
+            return
 
     except Exception as e:
         logger.error(f"[{agent_name}] Error during generation or broadcasting: {e}")
         logger.exception("Traceback:")
-        try:
-            await broadcaster({
-                "type": "error",
-                "agent": agent_name,
-                "message": f"{agent_name} failed: {e}"
-            })
-        except Exception as broadcast_err:
-            logger.error(f"[{agent_name}] Failed to broadcast agent error message: {broadcast_err}")
+        # Don't broadcast errors to frontend
+        if "429 Resource exhausted" in str(e):
+            logger.error(f"RATE LIMITING ERROR: API quota exceeded for agent '{agent_name}'. Consider increasing MIN_TRAFFIC_COP_INTERVAL.")
+        return

@@ -129,6 +129,11 @@ function handleMessage(messageData) {
         showError(messageData.message || "Unknown error occurred", messageData.agent);
         playSound("error");
     }
+    else if (messageData.type === "silent_error") {
+        // Log the error in console but don't display it to the user
+        console.error(`Silent error from ${messageData.agent}: ${messageData.message}`);
+        // Don't show a card and don't play a sound
+    }
     else if (messageData.type === "transcript" && messageData.is_final) {
         // Transcript handling can be re-enabled if needed
         return;
@@ -196,25 +201,64 @@ function addInsightCard(insightData) {
     cardHeader.appendChild(agentInfo);
     cardHeader.appendChild(cardActions);
     
-    // Create content
+    // Clean up agent name repetition in content
+    let cleanContent = content;
+    // Remove agent name prefix if it exists
+    const agentPrefix = agent + ":";
+    if (cleanContent.startsWith(agentPrefix)) {
+        cleanContent = cleanContent.substring(agentPrefix.length).trim();
+    }
+    // Remove "Wild Product Idea:" prefix if it exists (special case for Wild Product Agent)
+    if (agent === "Wild Product Agent" && cleanContent.startsWith("Wild Product Idea:")) {
+        cleanContent = cleanContent.substring("Wild Product Idea:".length).trim();
+    }
+    
+    // Generate headline and summary from cleaned content
+    const headline = generateHeadline(cleanContent);
+    const summary = generateSummary(cleanContent);
+    
+    // Create headline
+    const cardHeadline = document.createElement('h2');
+    cardHeadline.className = 'card-headline';
+    cardHeadline.textContent = headline;
+    
+    // Create summary
+    const cardSummary = document.createElement('div');
+    cardSummary.className = 'card-summary';
+    cardSummary.textContent = summary;
+    
+    // Create full content (initially hidden)
     const cardContent = document.createElement('div');
     cardContent.className = 'card-content';
-    cardContent.innerHTML = formatContent(content);
+    cardContent.innerHTML = formatContent(cleanContent);
+    cardContent.style.display = 'none';
     
-    // Add expand button
-    const expandBtn = document.createElement('button');
-    expandBtn.className = 'expand-btn';
-    expandBtn.textContent = 'Read More';
-    expandBtn.addEventListener('click', (e) => {
+    // Add read more button
+    const readMoreBtn = document.createElement('button');
+    readMoreBtn.className = 'read-more-btn';
+    readMoreBtn.textContent = 'Read More';
+    readMoreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        cardContent.classList.toggle('expanded');
-        expandBtn.textContent = cardContent.classList.contains('expanded') ? 'Show Less' : 'Read More';
+        if (cardContent.style.display === 'none') {
+            cardContent.style.display = 'block';
+            readMoreBtn.textContent = 'Read Less';
+        } else {
+            cardContent.style.display = 'none';
+            readMoreBtn.textContent = 'Read More';
+        }
     });
+    
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'card-content-wrapper';
+    contentWrapper.appendChild(cardHeadline);
+    contentWrapper.appendChild(cardSummary);
+    contentWrapper.appendChild(cardContent);
+    contentWrapper.appendChild(readMoreBtn);
     
     // Assemble card
     card.appendChild(cardHeader);
-    card.appendChild(cardContent);
-    card.appendChild(expandBtn);
+    card.appendChild(contentWrapper);
     
     // Add to container with animation
     card.style.opacity = '0';
@@ -237,6 +281,95 @@ function addInsightCard(insightData) {
     if (activeFilter !== 'all' && agent !== activeFilter) {
         card.style.display = 'none';
     }
+}
+
+// Generate a headline from content
+function generateHeadline(content) {
+    if (!content) return 'Insight';
+    
+    // Remove HTML tags if any
+    const plainText = content.replace(/<[^>]*>/g, '');
+    
+    // Check if the content has a standardized format with a headline on the first line
+    const lines = plainText.split('\n');
+    if (lines.length > 2 && lines[0].trim() && lines[1].trim() === '') {
+        // If the first line is non-empty and followed by an empty line, use it as headline
+        let headline = lines[0].trim();
+        
+        // Capitalize first letter
+        if (headline.length > 0) {
+            headline = headline.charAt(0).toUpperCase() + headline.slice(1);
+        }
+        
+        return headline;
+    }
+    
+    // Get first sentence or first 100 characters
+    let headline = '';
+    
+    // First try to get the first part until a colon or period
+    const colonMatch = plainText.match(/^([^:]+):/);
+    if (colonMatch) {
+        headline = colonMatch[1].trim();
+    } else {
+        const firstSentenceMatch = plainText.match(/^([^.!?]+[.!?])/);
+        if (firstSentenceMatch) {
+            headline = firstSentenceMatch[1].trim();
+        } else {
+            headline = plainText.substring(0, 100).trim();
+        }
+    }
+    
+    // No longer truncating headlines at all
+    // Just use the full headline as-is
+    
+    // Capitalize first letter
+    if (headline.length > 0) {
+        headline = headline.charAt(0).toUpperCase() + headline.slice(1);
+    }
+    
+    return headline;
+}
+
+// Generate a summary from content
+function generateSummary(content) {
+    if (!content) return '';
+    
+    // Remove HTML tags if any
+    const plainText = content.replace(/<[^>]*>/g, '');
+    
+    // Skip the headline part if there's a colon
+    let textToSummarize = plainText;
+    const colonIndex = plainText.indexOf(':');
+    if (colonIndex > 0 && colonIndex < 50) {
+        textToSummarize = plainText.substring(colonIndex + 1).trim();
+    }
+    
+    // Get first sentence and second sentence if it's short
+    const sentences = textToSummarize.split(/(?<=[.!?])\s+/);
+    let summary = '';
+    
+    if (sentences.length >= 1) {
+        summary = sentences[0].trim();
+        
+        // Add second sentence if the first one is very short
+        if (sentences.length >= 2 && summary.length < 60) {
+            summary += ' ' + sentences[1].trim();
+        }
+    }
+    
+    // Fallback to character-based truncation if needed
+    if (!summary) {
+        summary = textToSummarize.substring(0, 140).trim();
+        if (textToSummarize.length > 140) summary += '...';
+    }
+    
+    // Ensure it's not too long
+    if (summary.length > 160) {
+        summary = summary.substring(0, 157) + '...';
+    }
+    
+    return summary;
 }
 
 // Format content with line breaks and styling
@@ -340,9 +473,13 @@ function renderSavedInsights() {
         header.appendChild(icon);
         header.appendChild(name);
         
-        const content = document.createElement('div');
-        content.className = 'saved-card-content';
-        content.textContent = insight.content.replace(/<[^>]*>/g, '').substring(0, 100);
+        // Generate a headline for the saved card
+        const plainContent = insight.content.replace(/<[^>]*>/g, '');
+        const headline = generateHeadline(plainContent);
+        
+        const headlineElem = document.createElement('div');
+        headlineElem.className = 'saved-card-headline';
+        headlineElem.textContent = headline;
         
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-saved';
@@ -358,7 +495,7 @@ function renderSavedInsights() {
         });
         
         card.appendChild(header);
-        card.appendChild(content);
+        card.appendChild(headlineElem);
         card.appendChild(removeBtn);
         
         // Make the card expandable to see full content
@@ -370,8 +507,133 @@ function renderSavedInsights() {
 
 // Expand a saved insight to show full content
 function expandSavedInsight(insight) {
-    // You could show a modal or expand in place
-    alert(`${insight.agent}:\n\n${insight.content.replace(/<[^>]*>/g, '')}`);
+    // Create a modal to show the full content
+    const modal = document.createElement('div');
+    modal.className = 'insight-modal';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = `modal-content agent-${convertAgentClassname(insight.agent)}`;
+    
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header';
+    
+    const agentInfo = document.createElement('div');
+    agentInfo.className = 'agent-info';
+    
+    const agentIcon = document.createElement('div');
+    agentIcon.className = 'agent-icon';
+    const iconEl = document.createElement('i');
+    iconEl.className = `fas ${agentIcons[insight.agent] || 'fa-robot'}`;
+    agentIcon.appendChild(iconEl);
+    
+    const agentName = document.createElement('div');
+    agentName.className = 'agent-name';
+    agentName.textContent = insight.agent;
+    
+    agentInfo.appendChild(agentIcon);
+    agentInfo.appendChild(agentName);
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', () => modal.remove());
+    
+    modalHeader.appendChild(agentInfo);
+    modalHeader.appendChild(closeBtn);
+    
+    // Generate headline and summary
+    const plainContent = insight.content.replace(/<[^>]*>/g, '');
+    const headline = generateHeadline(plainContent);
+    const summary = generateSummary(plainContent);
+    
+    const modalHeadline = document.createElement('h2');
+    modalHeadline.className = 'modal-headline';
+    modalHeadline.textContent = headline;
+    
+    const modalSummary = document.createElement('div');
+    modalSummary.className = 'modal-summary';
+    modalSummary.textContent = summary;
+    
+    const modalFullContent = document.createElement('div');
+    modalFullContent.className = 'modal-full-content';
+    modalFullContent.innerHTML = formatContent(insight.content);
+    
+    modalContent.appendChild(modalHeader);
+    modalContent.appendChild(modalHeadline);
+    modalContent.appendChild(modalSummary);
+    modalContent.appendChild(modalFullContent);
+    
+    modal.appendChild(modalContent);
+    
+    // Close when clicking outside the modal content
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    document.body.appendChild(modal);
+    
+    // Add some simple modal styling if not already in CSS
+    if (!document.querySelector('style#modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'modal-styles';
+        style.textContent = `
+            .insight-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .modal-content {
+                background-color: white;
+                padding: 0;
+                border-radius: 8px;
+                width: 80%;
+                max-width: 600px;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            }
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            }
+            .modal-close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #666;
+            }
+            .modal-headline {
+                font-size: 1.8rem;
+                padding: 1.5rem 1.5rem 0.5rem;
+                margin: 0;
+            }
+            .modal-summary {
+                padding: 0 1.5rem 1.5rem;
+                color: #555;
+                font-size: 1.1rem;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            .modal-full-content {
+                padding: 1.5rem;
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
 
 // Remove a saved insight
@@ -448,10 +710,6 @@ function showError(message, agent = 'System') {
     agentInfo.appendChild(agentIcon);
     agentInfo.appendChild(agentName);
     
-    const cardContent = document.createElement('div');
-    cardContent.className = 'card-content';
-    cardContent.textContent = message;
-    
     const dismissButton = document.createElement('button');
     dismissButton.className = 'card-action-btn dismiss-insight';
     dismissButton.title = 'Dismiss this error';
@@ -467,8 +725,24 @@ function showError(message, agent = 'System') {
     cardHeader.appendChild(agentInfo);
     cardHeader.appendChild(cardActions);
     
+    // Create headline
+    const cardHeadline = document.createElement('h2');
+    cardHeadline.className = 'card-headline';
+    cardHeadline.textContent = "Error Occurred";
+    
+    // Create error message
+    const cardSummary = document.createElement('div');
+    cardSummary.className = 'card-summary';
+    cardSummary.textContent = message;
+    
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'card-content-wrapper';
+    contentWrapper.appendChild(cardHeadline);
+    contentWrapper.appendChild(cardSummary);
+    
     card.appendChild(cardHeader);
-    card.appendChild(cardContent);
+    card.appendChild(contentWrapper);
     
     if (insightDiv.firstChild) {
         insightDiv.insertBefore(card, insightDiv.firstChild);

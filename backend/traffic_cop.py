@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import json
+import random
 from vertexai.generative_models import GenerativeModel, Part, FinishReason
 import vertexai.generative_models as generative_models
 
@@ -94,75 +95,106 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     if not llm_agent_names:
         logger.warning("Routing skipped: No LLM-routable agents are configured.")
         return "None"
-
+    
+    # Add a 30% chance to select a random agent (for variety and increased triggers)
+    if random.random() < 0.3:
+        selected_agent = random.choice(llm_agent_names)
+        logger.info(f"--- Random selection: Selected agent: {selected_agent}")
+        return selected_agent
+    
     possible_agents_str = ", ".join(llm_agent_names)
 
     prompt = f"""
-You are a "Traffic Cop" AI analyzing meeting transcript segments. Your job is to determine which specialized AI agent should process each segment next, IF ANY. Do NOT choose 'Debate Agent' or any agents not listed below.
+You are a "Traffic Cop" AI analyzing meeting transcript segments. Your job is to determine which specialized AI agent should process each segment next. You should PREFER to select an agent rather than returning "None" if there's any reasonable connection. Do NOT choose 'Debate Agent' or any agents not listed below.
+
+IMPORTANT CONTEXT INSTRUCTIONS:
+1. Be VERY LENIENT about what constitutes business-related content - almost any topic can have a business angle.
+2. Only return "None" if the segment is completely unrelated to any possible business context.
+3. Be creative in finding business relevance in ambiguous or general conversations.
+4. You should aim for a balanced distribution of agents over time - all five agents should be given EQUAL CONSIDERATION.
+5. STRONGLY PREFER selecting an agent over returning "None" - even with minimal context.
 
 Available Agents (Choose ONE or None):
-- Radical Expander: Triggered by discussions focused on *internal* business operations, workflows, or organizational design. Examples include:
-    - How we conduct meetings/collaborations.
-    - How we report information internally.
-    - How we develop new products (the *process* of development).
-    - How we analyze our financial data (the *process* of analysis).
-    - How we structure our teams or departments.
-    - How we manage projects or track progress.
-    This agent proposes *radical rethinkings* or *paradigm shifts* in these *internal* areas.
-- Wild Product Agent: Triggered by discussions focused on *external*, customer-facing offerings. Examples include:
-    - What products/services we offer to customers.
-    - New product/service concepts or ideas.
-    - Ways to improve existing products/services for customers.
-    - Customer needs, problems, or feedback related to our offerings.
-- Skeptical Agent: Triggered by discussions where someone proposes an idea, plan, or solution that would benefit from critical analysis. Examples include:
-    - When a new initiative is being proposed and benefits are emphasized without considering difficulties.
-    - During discussions about resource allocation or investment decisions.
-    - When significant organizational changes are proposed.
-    - During discussions that seem overly optimistic without addressing risks.
-    This agent identifies potential challenges, assumptions, and risks that might not have been considered.
-- One Small Thing: Triggered by discussions about implementing AI where participants need practical next steps. Examples include:
-    - When participants express interest in AI but aren't sure where to start.
-    - During discussions about AI capabilities that could immediately benefit their work.
-    - When participants want to implement AI but are concerned about complexity or risk.
-    - During conversations where immediate, practical action items would be valuable.
-    This agent suggests one concrete, immediately implementable first step to begin an AI journey.
-- Disruptor: Triggered by discussions about industry dynamics, competitive threats, or market evolution. Examples include:
-    - When discussing traditional industry players and their business models.
-    - During conversations about market competition and differentiation.
-    - When analyzing industry trends and how they might evolve.
-    - During discussions of potential threats from new entrants or technologies.
-    This agent envisions how an AI-first startup could completely redefine the industry and outcompete established players.
+
+- Skeptical Agent: Triggered by BUSINESS discussions where ideas, plans, or solutions are proposed that warrant critical examination. Look for:
+    - New business initiatives, projects, or strategies being discussed
+    - Business claims that seem overly optimistic or ambitious
+    - Business decisions that involve significant resource allocation or risk
+    - Business proposals that might overlook potential challenges or downsides
+    - Business assumptions that could benefit from deeper questioning
+
+- One Small Thing: Triggered by discussions about implementing AI or technology in BUSINESS contexts where practical next steps would be valuable. Look for:
+    - Questions about where to start with AI implementation in business
+    - Expressions of interest in AI capabilities for specific business use cases
+    - Concerns about complexity, cost, or risk in business technology adoption
+    - Opportunities for quick wins or immediate business value from AI
+    - Business discussions that would benefit from practical, actionable advice
+
+- Disruptor: Triggered by discussions about business industry dynamics, market trends, or competitive positioning. Look for:
+    - Mentions of business industry challenges, competition, or market shifts
+    - Discussions about traditional business models or industry practices
+    - Conversations about future business market evolution or emerging threats
+    - Questions about staying competitive or achieving business differentiation
+    - Topics related to business innovation, disruption, or industry transformation
+
+- Radical Expander: Triggered by discussions about business internal operations, processes, or organizational structure. Look for:
+    - Talk about business workflows, meetings, or collaboration methods
+    - Discussions of business information sharing or reporting processes
+    - Mentions of business team structures, project management, or work allocation
+    - Topics related to business decision-making or governance
+    - Questions about efficiency, effectiveness, or optimization of business processes
+
+- Wild Product Agent: Triggered by discussions about business offerings, customer needs, or product/service innovation. Look for:
+    - Conversations about existing or potential business products and services
+    - Business customer pain points, needs, or feedback
+    - Ideas for new business offerings or features
+    - Questions about business market opportunities or customer value
+    - Topics related to business product strategy, development, or enhancement
 
 Transcript Segment:
 "{transcript_text}"
 
-Examples of Routing Decisions:
-- "Our weekly status meetings are incredibly inefficient and waste a lot of time." -> Radical Expander (internal process)
-- "What new AI-powered tools could help us automate expense reporting for employees?" -> Radical Expander (internal process)
-- "Should we offer a personalized meal planning subscription service to our customers?" -> Wild Product Agent (external service)
-- "Customer churn is way too high; we need to reduce it for our premium product." -> Wild Product Agent (external product/service)
-- "Should we completely reimagine our sales compensation structure for our sales team?" -> Radical Expander (internal structure/process)
-- "I propose implementing a companywide AI assistant for all employees to boost productivity." -> Skeptical Agent (new initiative that needs critical examination)
-- "The plan is to roll out the new system to all departments simultaneously next month." -> Skeptical Agent (ambitious plan that may overlook challenges)
-- "Our competitors aren't a concern since our new feature is revolutionary and they can't catch up." -> Skeptical Agent (potentially overlooking market realities)
-- "We should migrate all our systems to this new technology immediately." -> Skeptical Agent (potential implementation challenges)
-- "We're interested in using AI for customer service, but we're not sure where to start." -> One Small Thing (need for practical first step)
-- "How could we begin using AI in our HR processes without a big investment?" -> One Small Thing (looking for an entry point)
-- "I'm concerned about implementing AI because it seems so complex." -> One Small Thing (needs a simple starting point)
-- "What would be the quickest way to see some value from AI in our operations?" -> One Small Thing (seeking quick wins)
-- "We're concerned about new startups disrupting our business model." -> Disruptor (competitive threats discussion)
-- "Our industry hasn't changed much in decades, but AI could change that." -> Disruptor (industry evolution context)
-- "How might our market change in the next five years with all these new technologies?" -> Disruptor (future market dynamics)
-- "We're the established player in this industry, but tech companies are starting to enter." -> Disruptor (competitive landscape shift)
+Examples of Routing Decisions (NOTICE THE BALANCE between all agent types):
 
-Which agent from the list above is the MOST relevant for this specific segment? Output ONLY the name of the chosen agent or the word "None".
+SKEPTICAL AGENT EXAMPLES:
+- "We could implement this new system across all departments by next quarter." -> Skeptical Agent (ambitious business timeline that needs critical examination)
+- "Our AI solution will definitely increase sales by at least 50%." -> Skeptical Agent (overly optimistic business claim)
+- "The plan is to completely restructure our team organization based on this new model." -> Skeptical Agent (significant business change with potential risks)
+
+ONE SMALL THING EXAMPLES:
+- "I'm interested in using AI for our marketing, but I'm not sure where we should start." -> One Small Thing (needs practical business first step)
+- "How can we begin incorporating AI into our customer service without a huge investment?" -> One Small Thing (seeking accessible business entry point)
+- "What's a simple way we could start using AI in our daily operations?" -> One Small Thing (looking for quick business implementation)
+
+DISRUPTOR EXAMPLES:
+- "Our industry has been doing things the same way for decades." -> Disruptor (opportunity to reimagine business industry practices)
+- "We're worried about new startups entering our market with AI-first approaches." -> Disruptor (competitive business threat discussion)
+- "How might our competitive landscape change with these emerging technologies?" -> Disruptor (business market evolution question)
+
+RADICAL EXPANDER EXAMPLES:
+- "Our weekly team meetings take too much time and don't accomplish enough." -> Radical Expander (business process inefficiency)
+- "How should we structure our development teams for the next phase?" -> Radical Expander (business organization question)
+- "Our current project management approach isn't scaling well." -> Radical Expander (business workflow challenge)
+
+WILD PRODUCT AGENT EXAMPLES:
+- "What new features could we add to our product to better serve customers?" -> Wild Product Agent (business product enhancement)
+- "Our users are struggling with this aspect of our service." -> Wild Product Agent (business customer pain point)
+- "Could we create a subscription service for this customer segment?" -> Wild Product Agent (new business offering concept)
+
+NONE EXAMPLES:
+- "..." -> None (empty or unintelligible content)
+- "Um, ah, hmm..." -> None (only filler words with no substance)
+
+Note: Almost any other content, even if not explicitly business-focused, should be routed to an agent as it might be part of a broader business conversation.
+
+Which agent from the list above is the MOST relevant for this specific business segment? Output ONLY the name of the chosen agent or the word "None". Remember to consider ALL agents equally and avoid consistently favoring any particular agent type.
 """
 
     try:
         logger.info("Sending content-based routing request to Gemini...")
         response = await model.generate_content_async(
             prompt,
-            generation_config={"temperature": 0.2, "max_output_tokens": 50},
+            generation_config={"temperature": 0.5, "max_output_tokens": 50},  # Increased temperature for more variety
             safety_settings={
                 generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                 generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
@@ -253,13 +285,11 @@ async def trigger_agent(
         except Exception as e:
             logger.error(f"Error executing agent '{name}': {e}")
             logger.exception("Traceback:")
-            try:
-                await broadcaster({"type": "error", "agent": name, "message": f"Failed to execute agent '{name}'."})
-            except Exception as broadcast_err:
-                 logger.error(f"Failed to broadcast agent execution error: {broadcast_err}")
+            # Don't send error cards to the frontend
+            # If there's a rate limiting error (429), log it specifically
+            if "429 Resource exhausted" in str(e):
+                logger.error(f"RATE LIMITING ERROR: API quota exceeded for agent '{name}'. Consider increasing MIN_TRAFFIC_COP_INTERVAL.")
     else:
         logger.warning(f"Attempted to trigger unknown agent: '{name}'")
-        try:
-            await broadcaster({"type": "error", "agent": "System", "message": f"Unknown agent requested: '{name}'."})
-        except Exception as broadcast_err:
-             logger.error(f"Failed to broadcast unknown agent error: {broadcast_err}")
+        # Don't send error cards to the frontend
+        logger.error(f"Unknown agent requested: '{name}'")

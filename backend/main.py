@@ -25,7 +25,7 @@ GEMINI_MODEL_NAME = "gemini-1.5-pro-002" # Use your confirmed model
 
 # Rate limit for Traffic Cop calls
 last_traffic_cop_call_time = 0.0
-MIN_TRAFFIC_COP_INTERVAL = 15.0 # Seconds
+MIN_TRAFFIC_COP_INTERVAL = 10.0 # Set to 10 seconds - balance between triggering frequency and avoiding rate limits
 
 # Context Buffer Configuration for Debate Agent
 # Store approx 60 seconds. If segments are ~5-10s, 6-12 segments. Let's use 10.
@@ -134,9 +134,9 @@ async def handle_transcript_response(response_stream, websocket: WebSocket):
                 # Add the finalized transcript to the buffer
                 transcript_buffer.append(transcript)
 
-                # Skip empty or very short transcripts before calling Traffic Cop
-                if not transcript or len(transcript.strip()) < 5:
-                    logger.info("Transcript too short, skipping Traffic Cop call.")
+                # Skip empty transcripts before calling Traffic Cop
+                if not transcript or len(transcript.strip()) < 2: # Very minimal check - almost any content will pass
+                    logger.info("Transcript empty, skipping Traffic Cop call.")
                     continue
 
                 current_time = asyncio.get_event_loop().time()
