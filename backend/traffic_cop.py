@@ -16,6 +16,7 @@ try:
     from agents.debate_agent import run_debate_agent
     from agents.skeptical_agent import run_skeptical_agent
     from agents.one_small_thing_agent import run_one_small_thing_agent
+    from agents.disruptor_agent import run_disruptor_agent
     # Import other agents here if/when added
     logger.info("Successfully imported agent functions using absolute paths.")
 except ImportError as e:
@@ -26,6 +27,7 @@ except ImportError as e:
     async def run_debate_agent(*args, **kwargs): logger.error("Debate Agent not loaded"); await args[-1]({"type":"error", "agent": "Debate Agent", "message":"Not loaded"})
     async def run_skeptical_agent(*args, **kwargs): logger.error("Skeptical Agent not loaded"); await args[-1]({"type":"error", "agent": "Skeptical Agent", "message":"Not loaded"})
     async def run_one_small_thing_agent(*args, **kwargs): logger.error("One Small Thing Agent not loaded"); await args[-1]({"type":"error", "agent": "One Small Thing", "message":"Not loaded"})
+    async def run_disruptor_agent(*args, **kwargs): logger.error("Disruptor Agent not loaded"); await args[-1]({"type":"error", "agent": "Disruptor", "message":"Not loaded"})
 
 
 # --- Agent Routing Configuration ---
@@ -35,6 +37,7 @@ LLM_ROUTABLE_AGENTS = {
     "Wild Product Agent": run_product_agent,
     "Skeptical Agent": run_skeptical_agent,
     "One Small Thing": run_one_small_thing_agent,
+    "Disruptor": run_disruptor_agent,
     # Add other LLM-routable agents here
 }
 
@@ -46,6 +49,9 @@ SKEPTICAL_AGENT_TRIGGERS = ["skeptical agent", "devil's advocate", "critique thi
 
 # Define explicit trigger phrases for One Small Thing Agent
 ONE_SMALL_THING_TRIGGERS = ["one small thing", "first step", "where to start", "how to begin", "quick win"] # Case-insensitive check later
+
+# Define explicit trigger phrases for Disruptor Agent
+DISRUPTOR_TRIGGERS = ["disruptor", "disrupt", "disruption", "ai startup", "startup disruption", "industry disruptor"] # Case-insensitive check later
 
 # --- Traffic Cop Core Logic ---
 
@@ -73,6 +79,11 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     if any(phrase in transcript_text.lower() for phrase in ONE_SMALL_THING_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for One Small Thing Agent")
         return "One Small Thing" # Return specific name
+        
+    # Check for Explicit Triggers (Disruptor Agent)
+    if any(phrase in transcript_text.lower() for phrase in DISRUPTOR_TRIGGERS):
+        logger.info(f"--- Explicit trigger detected for Disruptor Agent")
+        return "Disruptor" # Return specific name
 
     # 2. If no explicit trigger, proceed with content-based routing (if model available)
     if not model:
@@ -115,6 +126,12 @@ Available Agents (Choose ONE or None):
     - When participants want to implement AI but are concerned about complexity or risk.
     - During conversations where immediate, practical action items would be valuable.
     This agent suggests one concrete, immediately implementable first step to begin an AI journey.
+- Disruptor: Triggered by discussions about industry dynamics, competitive threats, or market evolution. Examples include:
+    - When discussing traditional industry players and their business models.
+    - During conversations about market competition and differentiation.
+    - When analyzing industry trends and how they might evolve.
+    - During discussions of potential threats from new entrants or technologies.
+    This agent envisions how an AI-first startup could completely redefine the industry and outcompete established players.
 
 Transcript Segment:
 "{transcript_text}"
@@ -133,6 +150,10 @@ Examples of Routing Decisions:
 - "How could we begin using AI in our HR processes without a big investment?" -> One Small Thing (looking for an entry point)
 - "I'm concerned about implementing AI because it seems so complex." -> One Small Thing (needs a simple starting point)
 - "What would be the quickest way to see some value from AI in our operations?" -> One Small Thing (seeking quick wins)
+- "We're concerned about new startups disrupting our business model." -> Disruptor (competitive threats discussion)
+- "Our industry hasn't changed much in decades, but AI could change that." -> Disruptor (industry evolution context)
+- "How might our market change in the next five years with all these new technologies?" -> Disruptor (future market dynamics)
+- "We're the established player in this industry, but tech companies are starting to enter." -> Disruptor (competitive landscape shift)
 
 Which agent from the list above is the MOST relevant for this specific segment? Output ONLY the name of the chosen agent or the word "None".
 """
@@ -207,6 +228,7 @@ async def trigger_agent(
         "Debate Agent": run_debate_agent,
         "Skeptical Agent": run_skeptical_agent,
         "One Small Thing": run_one_small_thing_agent,
+        "Disruptor": run_disruptor_agent,
         # Add mappings for other agents if/when imported
     }
 
