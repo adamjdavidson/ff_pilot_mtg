@@ -264,11 +264,14 @@ function addInsightCard(insightData) {
     cardSummary.className = 'card-summary';
     cardSummary.textContent = summary;
     
-    // Create full content (initially hidden)
-    const cardContent = document.createElement('div');
-    cardContent.className = 'card-content';
-    cardContent.innerHTML = formatContent(cleanContent);
-    cardContent.style.display = 'none';
+    // Create content container div to hold the full detailed analysis text
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'detail-content';
+    contentContainer.style.display = 'none';
+    
+    // Process and extract just the detailed analysis part
+    let detailContent = extractDetailedContent(cleanContent, headline, summary);
+    contentContainer.innerHTML = detailContent;
     
     // Add read more button
     const readMoreBtn = document.createElement('button');
@@ -276,11 +279,11 @@ function addInsightCard(insightData) {
     readMoreBtn.textContent = 'Read More';
     readMoreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (cardContent.style.display === 'none') {
-            cardContent.style.display = 'block';
+        if (contentContainer.style.display === 'none') {
+            contentContainer.style.display = 'block';
             readMoreBtn.textContent = 'Read Less';
         } else {
-            cardContent.style.display = 'none';
+            contentContainer.style.display = 'none';
             readMoreBtn.textContent = 'Read More';
         }
     });
@@ -290,7 +293,7 @@ function addInsightCard(insightData) {
     contentWrapper.className = 'card-content-wrapper';
     contentWrapper.appendChild(cardHeadline);
     contentWrapper.appendChild(cardSummary);
-    contentWrapper.appendChild(cardContent);
+    contentWrapper.appendChild(contentContainer);
     contentWrapper.appendChild(readMoreBtn);
     
     // Assemble card
@@ -423,6 +426,37 @@ function formatContent(content) {
     formatted = formatted.replace(/^•\s+(.*)/gm, '<div class="bullet-point">• $1</div>');
     
     return formatted;
+}
+
+// Extract just the detailed content after headline and summary
+function extractDetailedContent(fullContent, headline, summary) {
+    if (!fullContent) return '';
+    
+    // Convert to plain text for processing
+    let plainText = fullContent.replace(/<[^>]*>/g, '');
+    
+    // Skip headline if present at the start
+    if (headline && plainText.startsWith(headline)) {
+        plainText = plainText.substring(headline.length).trim();
+        // Skip any empty lines after headline
+        plainText = plainText.replace(/^\s*\n+/, '');
+    }
+    
+    // Skip summary if present after headline
+    if (summary && plainText.startsWith(summary)) {
+        plainText = plainText.substring(summary.length).trim();
+        // Skip any empty lines after summary
+        plainText = plainText.replace(/^\s*\n+/, '');
+    }
+    
+    // Look for "Detailed Analysis:" section
+    const detailStart = plainText.indexOf("Detailed Analysis:");
+    if (detailStart >= 0) {
+        plainText = plainText.substring(detailStart + "Detailed Analysis:".length).trim();
+    }
+    
+    // Format the remaining content
+    return formatContent(plainText);
 }
 
 // Play sound for agent
