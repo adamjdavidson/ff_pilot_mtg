@@ -1,0 +1,7 @@
+fastapi>=0.100.0
+uvicorn>=0.20.0
+google-cloud-speech>=2.15.0
+google-cloud-aiplatform>=1.35.0
+websockets>=11.0
+# google-generativeai>=0.3.0
+# Add google-api-python-client and google-auth-httplib2 if needed for Search API later

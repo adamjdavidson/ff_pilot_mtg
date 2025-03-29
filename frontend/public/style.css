@@ -1,0 +1,89 @@
+/* --- Basic Styles --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f5f7; /* Slightly softer background */
+    color: #172b4d; /* Darker text for better contrast */
+    margin: 20px;
+    line-height: 1.5;
+}
+
+h1 {
+    color: #091e42; /* Even darker for heading */
+}
+
+#connection-status {
+    font-style: italic;
+    color: #505f79; /* Mid-grey status */
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+#insights {
+    margin-top: 20px;
+    border: 1px solid #dfe1e6; /* Lighter border */
+    background-color: #ffffff; /* White background */
+    padding: 10px; /* Reduced main padding */
+    min-height: 400px; /* Taller box */
+    max-height: 70vh; /* Limit height, add scroll */
+    overflow-y: auto; /* Add scroll if content overflows */
+    border-radius: 3px; /* Subtle rounding */
+    box-shadow: 0 1px 1px rgba(9,30,66,.15); /* Subtle shadow */
+}
+
+/* --- Message Card Styles --- */
+.message-card {
+    border-bottom: 1px solid #dfe1e6; /* Separator line */
+    padding: 15px 10px; /* Padding inside card */
+    margin-bottom: 0; /* Remove margin, use padding/border */
+}
+.message-card:first-child {
+     border-top: none; /* No border above the very first message */
+}
+ .message-card:last-child {
+     border-bottom: none; /* No border below the very last message */
+ }
+
+
+.insight-card {
+    /* Optional: Remove specific background if you prefer alternating or just separators */
+    /* background-color: #f4f5f7; */ /* Very light grey background */
+    border-left: 4px solid #0052cc; /* Thinner blue left border */
+    padding-left: 12px; /* Indent content slightly */
+}
+
+.insight-header {
+    font-weight: 600; /* Semi-bold */
+    color: #0747a6; /* Darker blue header text */
+    margin-bottom: 6px;
+    font-size: 1.0em; /* Slightly smaller header */
+}
+
+.insight-content {
+    color: #172b4d; /* Standard text color */
+    line-height: 1.6; /* Slightly more line spacing */
+}
+
+.transcript-card {
+    color: #42526e; /* Dark grey for transcripts */
+    font-size: 0.85em;
+    font-style: italic;
+    padding: 8px 10px; /* Smaller padding */
+}
+
+.error-card {
+    background-color: #ffebe6; /* Lighter red background */
+    border-left: 4px solid #de350b; /* Red left border */
+    color: #bf2600; /* Darker red text */
+    font-weight: bold;
+    padding: 12px 15px;
+    border-radius: 3px;
+    margin: 5px 0; /* Add some margin around errors */
+}
+
+.raw-message {
+    color: #505f79;
+    font-size: 0.8em;
+    font-family: monospace;
+    padding: 8px 10px;
+    word-break: break-all; /* Wrap long raw strings */
+}
