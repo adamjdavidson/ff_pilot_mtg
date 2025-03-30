@@ -22,6 +22,7 @@ try:
     from agents.one_small_thing_agent import run_one_small_thing_agent
     from agents.disruptor_agent import run_disruptor_agent
     from agents.dynamic_agent import run_dynamic_agent  # Import the dynamic agent
+    from agents.ethan_mollick_agent import run_ethan_mollick_agent  # Import the Ethan Mollick agent
     # Import other agents here if/when added
     logger.info("Successfully imported agent functions using absolute paths.")
 except ImportError as e:
@@ -34,6 +35,7 @@ except ImportError as e:
     async def run_one_small_thing_agent(*args, **kwargs): logger.error("One Small Thing Agent not loaded"); await args[-1]({"type":"error", "agent": "One Small Thing", "message":"Not loaded"})
     async def run_disruptor_agent(*args, **kwargs): logger.error("Disruptor Agent not loaded"); await args[-1]({"type":"error", "agent": "Disruptor", "message":"Not loaded"})
     async def run_dynamic_agent(*args, **kwargs): logger.error("Dynamic Agent not loaded"); await args[-1]({"type":"error", "agent": "Custom Agent", "message":"Not loaded"})
+    async def run_ethan_mollick_agent(*args, **kwargs): logger.error("Ethan Mollick Agent not loaded"); await args[-1]({"type":"error", "agent": "Ethan Mollick", "message":"Not loaded"})
 
 # Store custom agents created during runtime (will be lost on restart)
 CUSTOM_AGENTS = []
@@ -62,6 +64,9 @@ ONE_SMALL_THING_TRIGGERS = ["one small thing", "first step", "where to start", "
 # Define explicit trigger phrases for Disruptor Agent
 DISRUPTOR_TRIGGERS = ["disruptor", "disrupt", "disruption", "ai startup", "startup disruption", "industry disruptor"] # Case-insensitive check later
 
+# Define explicit trigger phrase for Ethan Mollick Agent
+ETHAN_MOLLICK_TRIGGER = "Ethan Mollick, I need your help" # Special case - exact phrase needed
+
 # --- Traffic Cop Core Logic ---
 
 # Note: Removed the type hint fix here as it should be done by changing Python version
@@ -73,7 +78,12 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     """
     logger.info(">>> route_to_traffic_cop: Analyzing transcript for routing...")
 
-    # 0. Check for Custom Agent triggers first (if any exist)
+    # 0. Check for Ethan Mollick trigger first (highest priority)
+    if ETHAN_MOLLICK_TRIGGER.lower() in transcript_text.lower():
+        logger.info(f"--- Explicit trigger detected for Ethan Mollick Agent")
+        return "Ethan Mollick"  # Return specific name to trigger run_ethan_mollick_agent
+    
+    # 1. Check for Custom Agent triggers (if any exist)
     for agent in CUSTOM_AGENTS:
         agent_name = agent.get("name", "Custom Agent")
         agent_triggers = agent.get("triggers", [])
@@ -326,6 +336,7 @@ async def trigger_agent(
         "Skeptical Agent": run_skeptical_agent,
         "One Small Thing": run_one_small_thing_agent,
         "Disruptor": run_disruptor_agent,
+        "Ethan Mollick": run_ethan_mollick_agent,  # Add Ethan Mollick agent
         # Add mappings for other agents if/when imported
     }
 
