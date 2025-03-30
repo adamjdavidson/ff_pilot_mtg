@@ -32,7 +32,7 @@ except ImportError as e:
     async def run_product_agent(*args, **kwargs): logger.error("Product Agent not loaded"); await args[-1]({"type":"error", "agent": "Product Agent", "message":"Not loaded"})
     async def run_debate_agent(*args, **kwargs): logger.error("Debate Agent not loaded"); await args[-1]({"type":"error", "agent": "Debate Agent", "message":"Not loaded"})
     async def run_skeptical_agent(*args, **kwargs): logger.error("Skeptical Agent not loaded"); await args[-1]({"type":"error", "agent": "Skeptical Agent", "message":"Not loaded"})
-    async def run_one_small_thing_agent(*args, **kwargs): logger.error("One Small Thing Agent not loaded"); await args[-1]({"type":"error", "agent": "One Small Thing", "message":"Not loaded"})
+    async def run_one_small_thing_agent(*args, **kwargs): logger.error("Next Step Agent not loaded"); await args[-1]({"type":"error", "agent": "Next Step Agent", "message":"Not loaded"})
     async def run_disruptor_agent(*args, **kwargs): logger.error("Disruptor Agent not loaded"); await args[-1]({"type":"error", "agent": "Disruptor", "message":"Not loaded"})
     async def run_dynamic_agent(*args, **kwargs): logger.error("Dynamic Agent not loaded"); await args[-1]({"type":"error", "agent": "Custom Agent", "message":"Not loaded"})
     async def run_ethan_mollick_agent(*args, **kwargs): logger.error("Ethan Mollick Agent not loaded"); await args[-1]({"type":"error", "agent": "Ethan Mollick", "message":"Not loaded"})
@@ -47,7 +47,7 @@ LLM_ROUTABLE_AGENTS = {
     "Radical Expander": run_radical_expander,
     "Product Agent": run_product_agent,
     "Skeptical Agent": run_skeptical_agent,
-    "One Small Thing": run_one_small_thing_agent,
+    "Next Step Agent": run_one_small_thing_agent,
     "Disruptor": run_disruptor_agent,
     # Add other LLM-routable agents here
 }

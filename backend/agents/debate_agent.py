@@ -36,10 +36,25 @@ async def run_debate_agent(recent_context: str, model: GenerativeModel, broadcas
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create a headline highlighting the key tension or divergent perspectives",
+        headline="[Select an emoji that PRECISELY matches the specific topic being discussed] [Create a headline highlighting the key tension or divergent perspectives]",
         summary="Summarize the key difference in viewpoints or assumptions in 1-2 sentences",
         analysis="Explain the potential disagreement or misalignment in more detail, why it matters, and suggest how the team might address it constructively"
     )
+    
+    # Add emoji selection guidance
+    emoji_guidance = """
+CHOOSE YOUR EMOJI BASED ON THE EXACT TOPIC BEING DISCUSSED:
+- If discussing product development → 📱 or 🛠️ or 🔨
+- If discussing marketing strategy → 📣 or 📊 or 🎯
+- If discussing team dynamics → 👥 or 🤝 or 🗣️
+- If discussing business strategy → 📈 or 🧩 or 🧮
+- If discussing technology implementation → 💻 or 🔌 or ⚙️
+- If discussing customer feedback → 👥 or 📝 or 🗣️
+- If discussing project timelines → ⏰ or 📅 or ⏱️
+- If discussing resource allocation → 💰 or 📊 or 📋
+- If discussing risk assessment → ⚠️ or 🛡️ or 🔍
+- Always use a SPECIFIC emoji that precisely matches the exact topic mentioned
+"""
     
     # Add the transcript context with stronger context relevance requirements
     full_prompt = f"""You are an AI meeting facilitator for BUSINESS meetings, helping to constructively surface potential underlying disagreements or misalignments. Your tone must be objective, polite, and aimed at fostering productive business discussion.
@@ -56,6 +71,8 @@ IMPORTANT CONTEXT INSTRUCTIONS:
 4. Be creative in identifying potential tensions that might impact business discussions.
 
 Identify the MOST significant area where business perspectives seem contradictory, professional assumptions might be misaligned, or a potential business-related conflict appears to be glossed over.
+
+{emoji_guidance}
 
 {prompt}"""
 

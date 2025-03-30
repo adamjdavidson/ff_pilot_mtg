@@ -41,9 +41,28 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
+[Select an emoji that PRECISELY matches the specific industry or product domain being discussed] [Create a short, compelling headline for your revolutionary product]
+
+[Write a single-sentence summary that explains the product's core value proposition]
+
+EXAMPLES:
 🔬 Our bio-inspired sensors create an invisible layer of building intelligence
 
 🏙️ Physical spaces respond to inhabitants like living organisms, anticipating needs before they arise.
+
+CHOOSE YOUR EMOJI BASED ON THE EXACT INDUSTRY OR PRODUCT DOMAIN:
+- If discussing healthcare → 🏥 or 💊 or 🩺 or 🧬
+- If discussing finance → 💸 or 💳 or 📊 or 💹
+- If discussing retail → 🛒 or 🏪 or 👕 or 🛍️
+- If discussing transportation → 🚗 or ✈️ or 🚂 or 🚢
+- If discussing food/agriculture → 🌽 or 🍎 or 🥩 or 🌾
+- If discussing manufacturing → 🏭 or ⚙️ or 🔧 or 🤖
+- If discussing education → 📚 or 🎓 or ✏️ or 🧠
+- If discussing entertainment → 🎬 or 🎮 or 🎵 or 📺
+- If discussing home/real estate → 🏠 or 🏢 or 🏗️ or 🔑
+- If discussing energy → ⚡ or 🔋 or ☀️ or 💨
+
+SELECT THE EMOJI THAT MOST SPECIFICALLY RELATES TO THE EXACT INDUSTRY OR PRODUCT MENTIONED IN THE TRANSCRIPT
 
 🚀 **The Revolutionary Product:**
 [Describe a mind-blowing product concept that feels like science fiction but is technically feasible within 5-10 years. Be extremely specific about what it does and how it works.]

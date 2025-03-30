@@ -62,9 +62,23 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-🌊 [Create a headline that directly connects to a specific business challenge or structure mentioned in the transcript]
+[Select an emoji that PRECISELY matches the specific topic being discussed] [Create a headline that directly connects to a specific business challenge or structure mentioned in the transcript]
 
-🧩 [Create a 1-2 sentence summary that directly connects to the transcript content]
+[Create a 1-2 sentence summary that directly connects to the transcript content]
+
+CHOOSE YOUR EMOJI BASED ON THE EXACT TOPIC BEING DISCUSSED:
+- If discussing meetings → 📊 or 👥 or 🗓️
+- If discussing HR/hiring → 👩‍💼 or 🤝 or 📋
+- If discussing communications → 📱 or 🔊 or 💬
+- If discussing marketing → 🎯 or 📢 or 📣
+- If discussing sales → 💰 or 🤝 or 📈
+- If discussing product development → 🛠️ or 🔧 or 📦
+- If discussing manufacturing → 🏭 or ⚙️ or 🔨
+- If discussing software development → 💻 or 📱 or 🖥️
+- If discussing data analysis → 📊 or 📉 or 📈
+- If discussing education/learning → 📚 or 🎓 or ✏️
+
+SELECT THE EMOJI THAT MOST SPECIFICALLY RELATES TO THE EXACT TOPIC IN THE TRANSCRIPT - BE EXTREMELY LITERAL AND SPECIFIC
 
 🌋 **Current Business Reality:** 
 [Extract a SPECIFIC business process/structure EXPLICITLY MENTIONED in the transcript and describe its conventional approach in 1-2 sentences. If you cannot identify a specific business process/structure in the transcript, respond ONLY with "NO_BUSINESS_CONTEXT"]

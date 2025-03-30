@@ -540,7 +540,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "Product Agent": "product_agent.py",
                                     "Debate Agent": "debate_agent.py", 
                                     "Skeptical Agent": "skeptical_agent.py",
-                                    "One Small Thing": "one_small_thing_agent.py",
+                                    "Next Step Agent": "one_small_thing_agent.py",
                                     "Disruptor": "disruptor_agent.py"
                                 }
                                 
@@ -610,7 +610,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "Product Agent": "product_agent.py",
                                     "Debate Agent": "debate_agent.py", 
                                     "Skeptical Agent": "skeptical_agent.py",
-                                    "One Small Thing": "one_small_thing_agent.py",
+                                    "Next Step Agent": "one_small_thing_agent.py",
                                     "Disruptor": "disruptor_agent.py"
                                 }
                                 

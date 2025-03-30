@@ -36,10 +36,26 @@ async def run_skeptical_agent(text: str, model: GenerativeModel, broadcaster: ca
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create a headline identifying the key risk or challenge",
+        headline="[Select an emoji that PRECISELY matches the specific risk or concern being identified] [Create a headline identifying the key risk or challenge]",
         summary="Briefly summarize the main concern that should be addressed",
         analysis="Identify 2-3 specific concerns with the following structure:\n\n**Concern 1: Title**\n- Issue: Clearly state the issue\n- Why it matters: Brief explanation\n- Mitigation: Suggestion to address\n\n**Concern 2: Title**\n- Issue: Clearly state the issue\n- Why it matters: Brief explanation\n- Mitigation: Suggestion to address\n\n**Concern 3: Title** (optional)\n- Issue: Clearly state the issue\n- Why it matters: Brief explanation\n- Mitigation: Suggestion to address"
     )
+    
+    # Add emoji selection guidance
+    emoji_guidance = """
+CHOOSE YOUR EMOJI BASED ON THE EXACT RISK OR CONCERN BEING IDENTIFIED:
+- If identifying financial risks → 💰 or 📉 or 💸
+- If identifying technical challenges → 🔧 or 💻 or ⚙️
+- If identifying market risks → 📊 or 🏢 or 🎯
+- If identifying operational challenges → ⚠️ or 🏭 or 🔄
+- If identifying talent/HR concerns → 👥 or 🧩 or 🤝
+- If identifying compliance/legal risks → ⚖️ or 📜 or 🔒
+- If identifying timeline/schedule risks → ⏰ or 📅 or ⌛
+- If identifying communication challenges → 🗣️ or 📢 or 📝
+- If identifying quality concerns → 🔍 or ✅ or 🛡️
+- If identifying security risks → 🔐 or 🛡️ or 🔓
+- Always use a SPECIFIC emoji that precisely matches the exact risk or concern identified
+"""
     
     # Add the transcript to the prompt with stronger context relevance requirements
     full_prompt = f"""You are a "Skeptical Agent" in an AI meeting assistant for BUSINESS meetings. Your role is to constructively analyze business ideas and identify potential issues that might be overlooked in initial enthusiasm.
@@ -52,6 +68,8 @@ IMPORTANT CONTEXT INSTRUCTIONS:
 2. Focus on practical concerns that might be relevant to any business context you can identify.
 3. Try to make connections to business themes even when they aren't explicitly mentioned.
 4. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no way to extract any business-relevant insight.
+
+{emoji_guidance}
 
 {prompt}
 

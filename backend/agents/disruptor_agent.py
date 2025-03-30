@@ -47,6 +47,24 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
+[Select an emoji that PRECISELY matches the specific industry being disrupted] [Create a compelling headline about your disruptive concept]
+
+[Write a single-sentence summary that explains the disruptive potential]
+
+CHOOSE YOUR EMOJI BASED ON THE EXACT INDUSTRY BEING DISRUPTED:
+- If discussing retail/e-commerce → 🛍️ or 🏪 or 🛒 
+- If discussing finance/banking → 💰 or 💳 or 📊
+- If discussing healthcare → 🏥 or 🩺 or 💊
+- If discussing transportation/logistics → 🚗 or 🚚 or ✈️
+- If discussing education → 🎓 or 📚 or 🏫
+- If discussing manufacturing → 🏭 or ⚙️ or 🔧
+- If discussing food/agriculture → 🌽 or 🍽️ or 🌾
+- If discussing energy → ⚡ or 🔋 or 🌞
+- If discussing real estate → 🏢 or 🏠 or 🔑
+- If discussing media/entertainment → 📱 or 🎬 or 📺
+- Always use a SPECIFIC emoji that precisely matches the exact topic/industry mentioned
+
+EXAMPLE:
 🚀 Our real-time market signals transform reactive businesses into predictive ones
 
 Companies gain foresight where competitors only have hindsight.

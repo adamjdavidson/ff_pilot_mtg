@@ -16,7 +16,7 @@ const soundPaths = {
     "Product Agent": "sound-product",
     "Skeptical Agent": "sound-skeptical",
     "Debate Agent": "sound-debate",
-    "One Small Thing": "sound-one-small-thing",
+    "Next Step Agent": "sound-one-small-thing",
     "Disruptor": "sound-disruptor",
     "error": "sound-error"
     // Custom agents will use the "error" sound as default
@@ -28,7 +28,7 @@ const agentIcons = {
     "Product Agent": "fa-lightbulb",
     "Skeptical Agent": "fa-question-circle",
     "Debate Agent": "fa-comments",
-    "One Small Thing": "fa-check-circle",
+    "Next Step Agent": "fa-check-circle",
     "Disruptor": "fa-rocket",
     "System": "fa-exclamation-circle"
     // Custom agents will default to "fa-brain" (assigned in the addInsightCard function)
@@ -69,7 +69,7 @@ const builtInAgents = [
         prompt: "Analyze the transcript for points of disagreement or tension, then present balanced arguments from multiple perspectives."
     },
     {
-        name: "One Small Thing",
+        name: "Next Step Agent",
         icon: "fa-check-circle",
         type: "built-in",
         goal: "Provide practical, actionable next steps that can be implemented immediately.",
@@ -91,13 +91,14 @@ let customAgents = [];
 
 // Store for available LLM models
 let availableModels = {
+    "claude": ["claude-3-7-sonnet-20250219"],
     "gemini": ["gemini-1.5-pro-002"],
-    "claude": ["claude-3-7-sonnet-20250219"]
+    "openai": ["o3-mini"]
 };
 
 // Track active model
-let activeModelProvider = "gemini";
-let activeModelName = "gemini-1.5-pro-002";
+let activeModelProvider = "claude";
+let activeModelName = "claude-3-7-sonnet-20250219";
 
 // Store for saved insights
 let savedInsights = JSON.parse(localStorage.getItem('savedInsights') || '[]');

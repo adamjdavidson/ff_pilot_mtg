@@ -14,7 +14,23 @@ async def run_fact_checker(transcript_text: str, gemini_model: GenerativeModel, 
     prompt = f"""
     Analyze the following meeting transcript segment:
     "{transcript_text}"
-    Very briefly, state the main factual topic or question being discussed.
+    
+    RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
+    
+    [Select an emoji that PRECISELY matches the specific factual topic being discussed] [Very briefly state the main factual topic or question being discussed]
+    
+    CHOOSE YOUR EMOJI BASED ON THE EXACT TOPIC BEING DISCUSSED:
+    - If discussing technology → 💻 or 📱 or 🤖
+    - If discussing business → 💼 or 📊 or 📈
+    - If discussing science → 🔬 or 🧪 or 🔭
+    - If discussing health → 🏥 or 🩺 or 💊
+    - If discussing environment → 🌳 or 🌎 or 🌊
+    - If discussing education → 🎓 or 📚 or 🏫
+    - If discussing history → 📜 or ⏳ or 🏛️
+    - If discussing politics → 🏛️ or 🗳️ or 🌐
+    - If discussing arts/entertainment → 🎨 or 🎬 or 🎭
+    - If discussing sports → ⚽ or 🏀 or 🏆
+    - Always use a SPECIFIC emoji that precisely matches the exact topic mentioned
     """
     try:
         response = await gemini_model.generate_content_async(prompt)

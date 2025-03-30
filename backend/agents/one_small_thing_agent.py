@@ -13,7 +13,7 @@ async def run_one_small_thing_agent(text: str, model: GenerativeModel, broadcast
     immediately implementable next step to begin an AI journey
     related to the topic being discussed.
     """
-    agent_name = "One Small Thing"
+    agent_name = "Next Step Agent"
     logger.info(f">>> Running {agent_name} Agent...")
 
     # --- Input Validation ---
@@ -36,10 +36,26 @@ async def run_one_small_thing_agent(text: str, model: GenerativeModel, broadcast
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create an action-oriented headline for the small step",
+        headline="[Select an emoji that PRECISELY matches the specific business domain or function being discussed] [Create an action-oriented headline for the small step]",
         summary="Summarize the one small step that can be implemented immediately",
         analysis="Provide structured details with these sections:\n\n**Domain:** Identify the business domain or function\n\n**Next Step:** Specific action to take\n\n**Why This Works:** Brief explanation of why this is a good first step\n\n**Getting Started:** 1-2 very specific suggestions on how to begin implementation"
     )
+    
+    # Add emoji selection guidance
+    emoji_guidance = """
+CHOOSE YOUR EMOJI BASED ON THE EXACT BUSINESS DOMAIN OR FUNCTION BEING DISCUSSED:
+- If discussing sales → 🤝 or 💼 or 📈
+- If discussing marketing → 📣 or 🎯 or 📊
+- If discussing customer service → 👥 or 🎧 or 💬
+- If discussing HR/people operations → 👥 or 📋 or 🤝
+- If discussing finance → 💰 or 📊 or 💵
+- If discussing product development → 📱 or 🛠️ or ⚙️
+- If discussing operations → 🏭 or 🔄 or ⚙️
+- If discussing logistics → 🚚 or 📦 or 🔄
+- If discussing IT/technology → 💻 or 🔌 or 📡
+- If discussing data/analytics → 📊 or 📈 or 🔍
+- Always use a SPECIFIC emoji that precisely matches the exact business domain or function being discussed
+"""
     
     # Add the transcript to the prompt with stronger context relevance requirements
     full_prompt = f"""You are the "One Small Thing" AI agent for business meetings. Your role is to suggest a single, concrete, immediately implementable next step for organizations beginning their AI journey in the specific business domain being discussed.
@@ -59,6 +75,8 @@ Focus on suggesting ONE specific step that is:
 - Specific enough to be clear how to begin
 - Likely to demonstrate value quickly
 - Directly relevant to the discussed business context
+
+{emoji_guidance}
 
 {prompt}
 
