@@ -63,14 +63,11 @@ if available_models:
     elif default_provider == "gemini" and ModelProvider.GEMINI in available_models:
         llm_client.set_active_provider(ModelProvider.GEMINI, GEMINI_MODEL_NAME)
         logger.info(f"Using Gemini as default provider with model {GEMINI_MODEL_NAME}")
-    elif default_provider == "deepseek" and ModelProvider.DEEPSEEK in available_models:
-        llm_client.set_active_provider(ModelProvider.DEEPSEEK, "deepseek-chat")
-        logger.info("Using DeepSeek as default provider with model deepseek-chat")
     elif default_provider == "openai" and ModelProvider.OPENAI in available_models:
         llm_client.set_active_provider(ModelProvider.OPENAI, OPENAI_MODEL_NAME)
         logger.info(f"Using OpenAI as default provider with model {OPENAI_MODEL_NAME}")
     elif not llm_client.active_provider:
-        # If no specific default and none is active yet, prefer Claude > Gemini > OpenAI > DeepSeek
+        # If no specific default and none is active yet, prefer Claude > Gemini > OpenAI
         if ModelProvider.CLAUDE in available_models:
             llm_client.set_active_provider(ModelProvider.CLAUDE, CLAUDE_MODEL_NAME)
             logger.info(f"Defaulting to Claude with model {CLAUDE_MODEL_NAME}")
@@ -80,9 +77,6 @@ if available_models:
         elif ModelProvider.OPENAI in available_models:
             llm_client.set_active_provider(ModelProvider.OPENAI, OPENAI_MODEL_NAME)
             logger.info(f"Defaulting to OpenAI with model {OPENAI_MODEL_NAME}")
-        elif ModelProvider.DEEPSEEK in available_models:
-            llm_client.set_active_provider(ModelProvider.DEEPSEEK, "deepseek-chat")
-            logger.info("Defaulting to DeepSeek with model deepseek-chat")
         else:
             logger.warning("No LLM providers available. System functionality will be limited.")
 else:
