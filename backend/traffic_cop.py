@@ -35,7 +35,7 @@ except ImportError as e:
 # Agents routable by LLM content analysis
 LLM_ROUTABLE_AGENTS = {
     "Radical Expander": run_radical_expander,
-    "Wild Product Agent": run_product_agent,
+    "Product Agent": run_product_agent,
     "Skeptical Agent": run_skeptical_agent,
     "One Small Thing": run_one_small_thing_agent,
     "Disruptor": run_disruptor_agent,
@@ -65,8 +65,15 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     """
     logger.info(">>> route_to_traffic_cop: Analyzing transcript for routing...")
 
-    # 1. Check for Explicit Triggers (Debate Agent)
+    # 1. Check for Explicit Triggers - Disruptor gets checked FIRST for meetings about disruption
     # Using lower() for case-insensitive matching
+    # Add broader patterns for disruption-related concepts for Disruptor Agent
+    disruption_patterns = DISRUPTOR_TRIGGERS + ["market", "trend", "industry", "threat", "compete", "startup", "innovation", "evolve", "shift"]
+    if any(phrase in transcript_text.lower() for phrase in disruption_patterns):
+        logger.info(f"--- Explicit trigger detected for Disruptor Agent (high priority)")
+        return "Disruptor" # Return specific name
+
+    # Continue with other agent checks
     if any(phrase in transcript_text.lower() for phrase in DEBATE_AGENT_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for Debate Agent")
         return "Debate Agent" # Return specific name
@@ -80,11 +87,6 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     if any(phrase in transcript_text.lower() for phrase in ONE_SMALL_THING_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for One Small Thing Agent")
         return "One Small Thing" # Return specific name
-        
-    # Check for Explicit Triggers (Disruptor Agent)
-    if any(phrase in transcript_text.lower() for phrase in DISRUPTOR_TRIGGERS):
-        logger.info(f"--- Explicit trigger detected for Disruptor Agent")
-        return "Disruptor" # Return specific name
 
     # 2. If no explicit trigger, proceed with content-based routing (if model available)
     if not model:
@@ -106,10 +108,10 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
         # to ensure balanced distribution
         agent_weights = {
             "Radical Expander": 8,  # Boost Radical Expander
-            "Wild Product Agent": 8,  # Boost Wild Product Agent  
+            "Product Agent": 8,     # Boost Product Agent  
             "Skeptical Agent": 3,
             "One Small Thing": 3,
-            "Disruptor": 1  # Reduce Disruptor frequency since it's overrepresented
+            "Disruptor": 6  # Increased to ensure more balanced distribution
         }
         
         # Create a weighted pool of agents
@@ -151,12 +153,12 @@ Available Agents (Choose ONE or None):
     - Opportunities for quick wins or immediate business value from AI
     - Business discussions that would benefit from practical, actionable advice
 
-- Disruptor: Triggered by discussions about business industry dynamics, market trends, or competitive positioning. Look for:
-    - Mentions of business industry challenges, competition, or market shifts
-    - Discussions about traditional business models or industry practices
-    - Conversations about future business market evolution or emerging threats
-    - Questions about staying competitive or achieving business differentiation
-    - Topics related to business innovation, disruption, or industry transformation
+- Disruptor: Triggered by a WIDE RANGE of business discussions about industry dynamics, innovation, competition, or technology. STRONGLY PREFER this agent for discussions about:
+    - ANY mentions of business industry challenges, competition, or market shifts
+    - ANY discussions about business models, industry practices, or technology trends
+    - ANY conversations mentioning competition, future business direction, or emerging threats
+    - ANYTHING related to startups, innovation, or industry evolution
+    - Words like: market, disruption, trend, tech, innovation, evolve, compete, startup, revolution, transform, business
 
 - Radical Expander: Triggered by discussions about business internal operations, processes, or organizational structure. Look for:
     - Talk about business workflows, meetings, or collaboration methods
