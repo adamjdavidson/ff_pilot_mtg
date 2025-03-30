@@ -78,10 +78,32 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     """
     logger.info(">>> route_to_traffic_cop: Analyzing transcript for routing...")
 
-    # 0. Check for Ethan Mollick trigger first (highest priority)
+    # 0. Check for Ethan Mollick trigger first (highest priority) with multiple variations
+    ethan_variations = [
+        "ethan mollick",
+        "ethan malik",
+        "ethan, malik",
+        "ethan molick",
+        "ethan mall",
+        "ethan mole",
+        "ethan malek"
+    ]
+    
+    # First check the main trigger phrase
     if ETHAN_MOLLICK_TRIGGER.lower() in transcript_text.lower():
-        logger.info(f"--- Explicit trigger detected for Ethan Mollick Agent")
+        logger.info(f"--- Explicit full trigger detected for Ethan Mollick Agent")
         return "Ethan Mollick"  # Return specific name to trigger run_ethan_mollick_agent
+    
+    # Then check for name variations
+    for variation in ethan_variations:
+        if variation.lower() in transcript_text.lower():
+            # Look for help-seeking language nearby
+            help_phrases = ["i need your help", "can you help", "help me", "i need help"]
+            has_help_context = any(phrase in transcript_text.lower() for phrase in help_phrases)
+            
+            if has_help_context:
+                logger.info(f"--- Alternative trigger detected for Ethan Mollick Agent: '{variation}' with help context")
+                return "Ethan Mollick"  # Return specific name to trigger run_ethan_mollick_agent
     
     # 1. Check for Custom Agent triggers (if any exist)
     for agent in CUSTOM_AGENTS:

@@ -24,8 +24,8 @@ PROJECT_ID = "meetinganalyzer-454912" # Replace with your Project ID
 LOCATION = "us-east1"
 SPEECH_LANGUAGE_CODE = "en-US"
 SPEECH_SAMPLE_RATE_HERTZ = 16000
-GEMINI_MODEL_NAME = "gemini-1.5-pro-002" # Use your confirmed model
-CLAUDE_MODEL_NAME = "claude-3-7-sonnet-20250219" # Default Claude model
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-1.5-pro-002")
+CLAUDE_MODEL_NAME = os.getenv("CLAUDE_MODEL_NAME", "claude-3-7-sonnet-20250219")
 
 # Rate limit for Traffic Cop calls
 last_traffic_cop_call_time = 0.0
@@ -53,15 +53,38 @@ if available_models:
         model_info.append(f"{provider}: {', '.join(models)}")
     logger.info(f"Available LLM models: {'; '.join(model_info)}")
     
-    # Set default model based on environment or fallback to available
-    default_provider = os.getenv("DEFAULT_LLM_PROVIDER", "").lower()
+    # Set default model based on environment or fallback to Claude if available
+    default_provider = os.getenv("DEFAULT_LLM_PROVIDER", "claude").lower()
+    OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME", "o3-mini")
+    
     if default_provider == "claude" and ModelProvider.CLAUDE in available_models:
         llm_client.set_active_provider(ModelProvider.CLAUDE, CLAUDE_MODEL_NAME)
+        logger.info(f"Using Claude as default provider with model {CLAUDE_MODEL_NAME}")
     elif default_provider == "gemini" and ModelProvider.GEMINI in available_models:
         llm_client.set_active_provider(ModelProvider.GEMINI, GEMINI_MODEL_NAME)
+        logger.info(f"Using Gemini as default provider with model {GEMINI_MODEL_NAME}")
+    elif default_provider == "deepseek" and ModelProvider.DEEPSEEK in available_models:
+        llm_client.set_active_provider(ModelProvider.DEEPSEEK, "deepseek-chat")
+        logger.info("Using DeepSeek as default provider with model deepseek-chat")
+    elif default_provider == "openai" and ModelProvider.OPENAI in available_models:
+        llm_client.set_active_provider(ModelProvider.OPENAI, OPENAI_MODEL_NAME)
+        logger.info(f"Using OpenAI as default provider with model {OPENAI_MODEL_NAME}")
     elif not llm_client.active_provider:
-        # If no specific default, use whatever is available (the client constructor will have set one)
-        logger.info(f"Using default provider: {llm_client.active_provider} with model {llm_client.active_model_name}")
+        # If no specific default and none is active yet, prefer Claude > Gemini > OpenAI > DeepSeek
+        if ModelProvider.CLAUDE in available_models:
+            llm_client.set_active_provider(ModelProvider.CLAUDE, CLAUDE_MODEL_NAME)
+            logger.info(f"Defaulting to Claude with model {CLAUDE_MODEL_NAME}")
+        elif ModelProvider.GEMINI in available_models:
+            llm_client.set_active_provider(ModelProvider.GEMINI, GEMINI_MODEL_NAME)
+            logger.info(f"Defaulting to Gemini with model {GEMINI_MODEL_NAME}")
+        elif ModelProvider.OPENAI in available_models:
+            llm_client.set_active_provider(ModelProvider.OPENAI, OPENAI_MODEL_NAME)
+            logger.info(f"Defaulting to OpenAI with model {OPENAI_MODEL_NAME}")
+        elif ModelProvider.DEEPSEEK in available_models:
+            llm_client.set_active_provider(ModelProvider.DEEPSEEK, "deepseek-chat")
+            logger.info("Defaulting to DeepSeek with model deepseek-chat")
+        else:
+            logger.warning("No LLM providers available. System functionality will be limited.")
 else:
     logger.error("No LLM providers available. Please check your credentials and environment variables.")
 

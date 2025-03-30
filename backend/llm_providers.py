@@ -27,6 +27,8 @@ class ModelProvider(str, Enum):
     """Supported model providers."""
     GEMINI = "gemini"
     CLAUDE = "claude"
+    DEEPSEEK = "deepseek"
+    OPENAI = "openai"
 
 class ModelConfig:
     """Configuration for LLM models."""
@@ -100,22 +102,63 @@ class UnifiedLLMClient:
                 self.claude_client = anthropic.Anthropic(api_key=claude_api_key)
                 logger.info("Initialized Claude client")
                 
-                # Set as default if Gemini isn't available
-                if not self.gemini_model and not self.active_provider:
-                    self.active_provider = ModelProvider.CLAUDE
-                    self.active_model_name = "claude-3-7-sonnet-latest"
+                # Set Claude as default regardless of Gemini availability
+                self.active_provider = ModelProvider.CLAUDE
+                self.active_model_name = "claude-3-7-sonnet-20250219"
             else:
                 logger.warning("No Anthropic API key found in environment variables")
                 
         except Exception as e:
             logger.error(f"Failed to initialize Claude client: {e}")
+            
+        # Try to load DeepSeek client
+        try:
+            deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
+            if deepseek_api_key:
+                # Import DeepSeek client
+                import deepseek
+                self.deepseek_client = deepseek.Client(api_key=deepseek_api_key)
+                logger.info("Initialized DeepSeek client")
+                
+                # Only set as default if Claude isn't available and no provider is set
+                if not self.claude_client and not self.active_provider:
+                    self.active_provider = ModelProvider.DEEPSEEK
+                    self.active_model_name = "deepseek-chat"
+            else:
+                logger.warning("No DeepSeek API key found in environment variables")
+                self.deepseek_client = None
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize DeepSeek client: {e}")
+            self.deepseek_client = None
+            
+        # Try to load OpenAI client
+        try:
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if openai_api_key:
+                # Import OpenAI client
+                import openai as openai_client
+                self.openai_client = openai_client.OpenAI(api_key=openai_api_key)
+                logger.info("Initialized OpenAI client")
+                
+                # Only set as default if other clients aren't available and no provider is set
+                if not self.claude_client and not self.gemini_model and not self.deepseek_client and not self.active_provider:
+                    self.active_provider = ModelProvider.OPENAI
+                    self.active_model_name = "o3-mini"
+            else:
+                logger.warning("No OpenAI API key found in environment variables")
+                self.openai_client = None
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize OpenAI client: {e}")
+            self.openai_client = None
     
     def set_active_provider(self, provider: ModelProvider, model_name: Optional[str] = None) -> bool:
         """
         Set the active LLM provider.
         
         Args:
-            provider: The provider to activate (GEMINI or CLAUDE)
+            provider: The provider to activate (GEMINI, CLAUDE, DEEPSEEK, or OPENAI)
             model_name: Optional specific model name to use
         
         Returns:
@@ -129,8 +172,20 @@ class UnifiedLLMClient:
             
         elif provider == ModelProvider.CLAUDE and self.claude_client:
             self.active_provider = ModelProvider.CLAUDE
-            self.active_model_name = model_name or "claude-3-7-sonnet-latest"
+            self.active_model_name = model_name or "claude-3-7-sonnet-20250219"
             logger.info(f"Set active provider to Claude: {self.active_model_name}")
+            return True
+            
+        elif provider == ModelProvider.DEEPSEEK and self.deepseek_client:
+            self.active_provider = ModelProvider.DEEPSEEK
+            self.active_model_name = model_name or "deepseek-chat"
+            logger.info(f"Set active provider to DeepSeek: {self.active_model_name}")
+            return True
+            
+        elif provider == ModelProvider.OPENAI and self.openai_client:
+            self.active_provider = ModelProvider.OPENAI
+            self.active_model_name = model_name or "o3-mini"
+            logger.info(f"Set active provider to OpenAI: {self.active_model_name}")
             return True
             
         else:
@@ -161,6 +216,10 @@ class UnifiedLLMClient:
             return await self._generate_with_gemini(prompt, config)
         elif self.active_provider == ModelProvider.CLAUDE:
             return await self._generate_with_claude(prompt, config)
+        elif self.active_provider == ModelProvider.DEEPSEEK:
+            return await self._generate_with_deepseek(prompt, config)
+        elif self.active_provider == ModelProvider.OPENAI:
+            return await self._generate_with_openai(prompt, config)
         else:
             raise ValueError(f"No active provider set or provider not supported: {self.active_provider}")
     
@@ -237,6 +296,60 @@ class UnifiedLLMClient:
             logger.error(f"Error generating content with Claude: {e}")
             raise
     
+    async def _generate_with_deepseek(self, prompt: str, config: ModelConfig) -> ModelResponse:
+        """Generate content using DeepSeek."""
+        try:
+            response = await self.deepseek_client.chat.completions.create(
+                model=config.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+            )
+            
+            content = response.choices[0].message.content if response.choices else ""
+            
+            return ModelResponse(
+                text=content,
+                finish_reason=response.choices[0].finish_reason if response.choices else "unknown",
+                model_provider=ModelProvider.DEEPSEEK,
+                model_name=config.model_name,
+                usage={
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error generating content with DeepSeek: {e}")
+            raise
+    
+    async def _generate_with_openai(self, prompt: str, config: ModelConfig) -> ModelResponse:
+        """Generate content using OpenAI."""
+        try:
+            response = await self.openai_client.chat.completions.create(
+                model=config.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+            )
+            
+            content = response.choices[0].message.content if response.choices else ""
+            
+            return ModelResponse(
+                text=content,
+                finish_reason=response.choices[0].finish_reason if response.choices else "unknown",
+                model_provider=ModelProvider.OPENAI,
+                model_name=config.model_name,
+                usage={
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error generating content with OpenAI: {e}")
+            raise
+    
     def available_models(self) -> Dict[str, List[str]]:
         """
         Returns a dictionary of available models grouped by provider.
@@ -251,9 +364,22 @@ class UnifiedLLMClient:
             
         if self.claude_client:
             models[ModelProvider.CLAUDE] = [
-                "claude-3-7-sonnet-latest", 
-                "claude-3-5-sonnet-latest", 
-                "claude-3-opus-latest"
+                "claude-3-7-sonnet-20250219", 
+                "claude-3-5-sonnet-20240620", 
+                "claude-3-opus-20240229"
+            ]
+            
+        if self.deepseek_client:
+            models[ModelProvider.DEEPSEEK] = [
+                "deepseek-chat",
+                "deepseek-coder"
+            ]
+            
+        if self.openai_client:
+            models[ModelProvider.OPENAI] = [
+                "o3-mini",
+                "gpt-4o",
+                "gpt-4-turbo"
             ]
             
         return models

@@ -69,15 +69,59 @@ async def run_ethan_mollick_agent(text: str, model, broadcaster: callable):
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
 
-    # Check if the text contains the trigger phrase
-    trigger_phrase = "Ethan Mollick, I need your help"
-    if trigger_phrase.lower() not in text.lower():
-        logger.info(f"[{agent_name}] Skipped: Trigger phrase not found in transcript.")
-        # Silently skip if the trigger phrase is not present
-        return
+    # Check if the text contains a variation of the trigger phrase
+    main_trigger_phrase = "Ethan Mollick, I need your help"
+    alternate_triggers = [
+        "ethan mollick",
+        "ethan malik",
+        "ethan, malik",
+        "ethan molick",
+        "ethan mall",
+        "ethan mole",
+        "ethan malek"
+    ]
+    
+    # First check for the full expected phrase
+    if main_trigger_phrase.lower() in text.lower():
+        trigger_used = main_trigger_phrase
+        logger.info(f"[{agent_name}] Full trigger phrase detected.")
+    else:
+        # Check for alternative trigger phrases
+        trigger_used = None
+        for alt_trigger in alternate_triggers:
+            if alt_trigger.lower() in text.lower():
+                trigger_used = alt_trigger
+                logger.info(f"[{agent_name}] Alternative trigger phrase detected: '{alt_trigger}'")
+                break
+        
+        if not trigger_used:
+            logger.info(f"[{agent_name}] Skipped: No trigger phrase variation found in transcript.")
+            # Silently skip if no trigger phrase is present
+            return
     
     # Extract the query - everything after the trigger phrase
-    query_start = text.lower().find(trigger_phrase.lower()) + len(trigger_phrase)
+    # If an alternative was found, look for "I need your help" nearby or just use the entire text after the name
+    if trigger_used == main_trigger_phrase:
+        query_start = text.lower().find(trigger_used.lower()) + len(trigger_used)
+    else:
+        # Look for "I need your help" or variations after the name
+        help_phrases = ["i need your help", "can you help", "help me", "i need help"]
+        name_pos = text.lower().find(trigger_used.lower())
+        
+        # Look for help phrases after the name
+        help_phrase_pos = -1
+        for phrase in help_phrases:
+            pos = text.lower().find(phrase, name_pos)
+            if pos != -1 and (help_phrase_pos == -1 or pos < help_phrase_pos):
+                help_phrase_pos = pos
+                
+        # If found, start the query after the help phrase
+        if help_phrase_pos != -1:
+            query_start = help_phrase_pos + len(text[help_phrase_pos:].split()[0])
+        else:
+            # If no help phrase, just start after the name
+            query_start = name_pos + len(trigger_used)
+    
     query = text[query_start:].strip()
     
     if not query:
