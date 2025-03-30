@@ -1079,6 +1079,75 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #718096;
 }
 
+/* Agent Version Control Styles */
+.prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.prompt-version-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.prompt-version-selector {
+    padding: 5px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #ccc;
+    font-size: 0.9em;
+    background-color: var(--white);
+}
+
+#create-version-btn, #test-version-btn, #delete-version-btn {
+    padding: 3px 8px;
+    font-size: 0.8em;
+    border-radius: var(--radius-sm);
+}
+
+#create-version-btn {
+    background-color: var(--color-product);
+    color: var(--white);
+}
+
+#test-version-btn {
+    background-color: var(--color-one-small-thing);
+    color: var(--white);
+}
+
+.test-results {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #eaeaea;
+    border-radius: var(--radius-sm);
+    background-color: #f9f9f9;
+}
+
+.test-results h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+#test-output {
+    white-space: pre-wrap;
+    font-family: monospace;
+    background-color: var(--white);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #eee;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
 /* Circuit Board Background Texture for Body */
 body::before {
     content: '';

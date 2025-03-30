@@ -51,8 +51,29 @@ async def run_dynamic_agent(text: str, model, broadcaster: callable, agent_confi
         analysis=f"Detailed analysis of how this relates to {agent_goal}. Provide specific, actionable insights."
     )
     
-    # Get custom prompt template if provided or use default
-    template = agent_config.get("prompt") or f"""You are {agent_name}, an AI agent that specializes in: {agent_goal}
+    # Check if a specific prompt template version is requested
+    template = None
+    if "version_name" in agent_config:
+        # Import here to avoid circular imports
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from agent_versions import get_agent_versions
+        
+        version_name = agent_config.get("version_name")
+        # Get all versions of this agent
+        agent_versions = get_agent_versions(agent_name)
+        
+        # Find the specified version
+        for version in agent_versions:
+            if version.get("version_name") == version_name:
+                template = version.get("prompt_text")
+                logger.info(f"Using versioned prompt for {agent_name}: {version_name}")
+                break
+    
+    # If no versioned prompt was found, use the provided prompt or default
+    if not template:
+        template = agent_config.get("prompt") or f"""You are {agent_name}, an AI agent that specializes in: {agent_goal}
 
 TRANSCRIPT:
 "{text}"

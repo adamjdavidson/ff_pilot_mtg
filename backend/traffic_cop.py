@@ -37,8 +37,39 @@ except ImportError as e:
     async def run_dynamic_agent(*args, **kwargs): logger.error("Dynamic Agent not loaded"); await args[-1]({"type":"error", "agent": "Custom Agent", "message":"Not loaded"})
     async def run_ethan_mollick_agent(*args, **kwargs): logger.error("Ethan Mollick Agent not loaded"); await args[-1]({"type":"error", "agent": "Ethan Mollick", "message":"Not loaded"})
 
-# Store custom agents created during runtime (will be lost on restart)
-CUSTOM_AGENTS = []
+# Store custom agents with persistence
+import json
+import os
+
+# Path to store custom agents JSON file
+CUSTOM_AGENTS_FILE = os.path.join(os.path.dirname(__file__), 'custom_agents.json')
+
+# Load custom agents from file if it exists, otherwise initialize empty list
+def load_custom_agents():
+    try:
+        if os.path.exists(CUSTOM_AGENTS_FILE):
+            with open(CUSTOM_AGENTS_FILE, 'r') as f:
+                agents = json.load(f)
+                logger.info(f"Loaded {len(agents)} custom agents from {CUSTOM_AGENTS_FILE}")
+                return agents
+        else:
+            logger.info(f"No custom agents file found at {CUSTOM_AGENTS_FILE}, initializing empty list")
+            return []
+    except Exception as e:
+        logger.error(f"Error loading custom agents from {CUSTOM_AGENTS_FILE}: {e}")
+        return []
+
+# Save custom agents to file
+def save_custom_agents():
+    try:
+        with open(CUSTOM_AGENTS_FILE, 'w') as f:
+            json.dump(CUSTOM_AGENTS, f, indent=2)
+        logger.info(f"Saved {len(CUSTOM_AGENTS)} custom agents to {CUSTOM_AGENTS_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving custom agents to {CUSTOM_AGENTS_FILE}: {e}")
+
+# Initialize custom agents
+CUSTOM_AGENTS = load_custom_agents()
 
 
 # --- Agent Routing Configuration ---

@@ -3,9 +3,75 @@ Utility functions for the AI Meeting Assistant.
 Contains shared functions for formatting and standardizing agent outputs.
 """
 import logging
+import os
+import re
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
+
+# Agent prompt extraction function - doesn't modify original files
+def extract_agent_prompt(agent_name):
+    """
+    Extracts the prompt text from an agent file without modifying it.
+    Returns the raw prompt text in human-readable form.
+    """
+    # Map agent names to their file names
+    agent_files = {
+        "Radical Expander": "radical_expander.py",
+        "Product Agent": "product_agent.py",
+        "Debate Agent": "debate_agent.py", 
+        "Skeptical Agent": "skeptical_agent.py",
+        "Next Step Agent": "one_small_thing_agent.py",
+        "Disruptor": "disruptor_agent.py",
+        "Ethan Mollick": "ethan_mollick_agent.py"
+    }
+    
+    if agent_name not in agent_files:
+        logger.error(f"Unknown agent name: {agent_name}")
+        return {"error": f"Unknown agent: {agent_name}"}
+    
+    # File path
+    file_path = os.path.join(os.path.dirname(__file__), "agents", agent_files[agent_name])
+    
+    try:
+        # Read the file
+        with open(file_path, 'r') as f:
+            content = f.read()
+            
+        # Extract various prompt types (direct_prompt, full_prompt, etc)
+        prompt_text = ""
+        
+        # Check for direct_prompt first (most agents use this)
+        if "direct_prompt = f\"\"\"" in content:
+            match = re.search(r'direct_prompt = f"""(.*?)"""', content, re.DOTALL)
+            if match:
+                prompt_text = match.group(1)
+        
+        # If not found, check for other common patterns
+        elif "full_prompt = f\"\"\"" in content:
+            match = re.search(r'full_prompt = f"""(.*?)"""', content, re.DOTALL)
+            if match:
+                prompt_text = match.group(1)
+        
+        # If still not found, look for any triple-quoted string
+        if not prompt_text:
+            # Look for any variable assigned to a triple-quoted string
+            matches = re.findall(r'(\w+)\s*=\s*f"""(.*?)"""', content, re.DOTALL)
+            if matches:
+                prompt_text = matches[0][1]  # Get the text part
+        
+        if not prompt_text:
+            return {"error": "No prompt found in agent file"}
+            
+        return {
+            "success": True,
+            "prompt_text": prompt_text,
+            "agent_name": agent_name
+        }
+        
+    except Exception as e:
+        logger.error(f"Error extracting prompt from {file_path}: {str(e)}")
+        return {"error": f"Error extracting prompt: {str(e)}"}
 
 async def format_agent_response(agent_name: str, content: str, broadcaster: callable, type: str = "insight"):
     """

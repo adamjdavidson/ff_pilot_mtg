@@ -690,10 +690,16 @@ function setupAgentManagement() {
                     };
                     socket.send(JSON.stringify(message));
                 }
+                
+                // Also load agent versions
+                loadAgentVersions(agent.name);
             } else {
                 // For custom agents, use the prompt from the agent object
                 document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'Default prompt template (not specified)';
             }
+            
+            // Setup version control buttons
+            setupVersionControlButtons(agent);
             
             // Show details
             document.getElementById('agent-details').classList.remove('hidden');
@@ -764,6 +770,203 @@ function connectWebSocket() {
 }
 
 // Handle WebSocket Messages
+// Agent Version Management
+let currentAgentVersions = [];
+let currentAgentName = '';
+let selectedVersionName = 'original';
+
+function loadAgentVersions(agentName) {
+    // Clear existing versions
+    const versionSelector = document.getElementById('prompt-version-selector');
+    versionSelector.innerHTML = '';
+    
+    // Add the original version option
+    const originalOption = document.createElement('option');
+    originalOption.value = 'original';
+    originalOption.textContent = 'Original';
+    versionSelector.appendChild(originalOption);
+    
+    // Request versions from the server
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        const message = {
+            type: 'get_agent_versions',
+            agent_name: agentName
+        };
+        socket.send(JSON.stringify(message));
+        
+        // Update current agent name
+        currentAgentName = agentName;
+    }
+}
+
+function setupVersionControlButtons(agent) {
+    // Get UI elements
+    const versionSelector = document.getElementById('prompt-version-selector');
+    const createVersionBtn = document.getElementById('create-version-btn');
+    const testVersionBtn = document.getElementById('test-version-btn');
+    const deleteVersionBtn = document.getElementById('delete-version-btn');
+    
+    // Reset version selector state
+    selectedVersionName = 'original';
+    versionSelector.value = 'original';
+    
+    // Setup version selector change event
+    versionSelector.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        selectedVersionName = selectedValue;
+        
+        // Enable delete button only for custom versions
+        deleteVersionBtn.disabled = selectedValue === 'original';
+        
+        // Update displayed prompt based on selected version
+        if (selectedValue === 'original') {
+            // Show original prompt
+            if (agent.type === 'built-in') {
+                // Request the original prompt again
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const message = {
+                        type: 'get_agent_prompt',
+                        agent_name: agent.name
+                    };
+                    socket.send(JSON.stringify(message));
+                }
+            } else {
+                document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'No prompt specified';
+            }
+        } else {
+            // Show the selected version's prompt
+            const selectedVersion = currentAgentVersions.find(v => v.version_name === selectedValue);
+            if (selectedVersion) {
+                document.getElementById('detail-agent-prompt').textContent = selectedVersion.prompt_text;
+            }
+        }
+    });
+    
+    // Setup create version button
+    createVersionBtn.addEventListener('click', () => {
+        // Get current prompt
+        const currentPrompt = document.getElementById('detail-agent-prompt').textContent;
+        
+        // Populate the create version form
+        document.getElementById('version-prompt').value = currentPrompt;
+        document.getElementById('version-name').value = `${agent.name.toLowerCase().replace(/\s+/g, '_')}_v${currentAgentVersions.length + 1}`;
+        document.getElementById('version-description').value = '';
+        
+        // Show the create version modal
+        const modal = document.getElementById('create-version-modal');
+        modal.classList.add('show');
+    });
+    
+    // Setup test version button
+    testVersionBtn.addEventListener('click', () => {
+        // Show the test version modal
+        const modal = document.getElementById('test-version-modal');
+        document.getElementById('test-input').value = 'We are discussing a new customer service chatbot that needs to be implemented by next quarter.';
+        document.getElementById('test-results').classList.add('hidden');
+        modal.classList.add('show');
+    });
+    
+    // Setup delete version button
+    deleteVersionBtn.addEventListener('click', () => {
+        if (selectedVersionName === 'original') {
+            showToast('Cannot delete original version');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to delete version "${selectedVersionName}"?`)) {
+            // Send delete request to server
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'delete_agent_version',
+                    agent_name: currentAgentName,
+                    version_name: selectedVersionName
+                };
+                socket.send(JSON.stringify(message));
+            }
+        }
+    });
+    
+    // Setup create version form
+    const createVersionForm = document.getElementById('create-version-form');
+    createVersionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Get form values
+        const versionName = document.getElementById('version-name').value.trim();
+        const description = document.getElementById('version-description').value.trim();
+        const promptText = document.getElementById('version-prompt').value.trim();
+        
+        // Validate
+        if (!versionName || !promptText) {
+            showToast('Version name and prompt are required');
+            return;
+        }
+        
+        // Send create version request to server
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const message = {
+                type: 'create_agent_version',
+                agent_name: currentAgentName,
+                version_name: versionName,
+                prompt_text: promptText,
+                description: description
+            };
+            socket.send(JSON.stringify(message));
+            
+            // Close the modal
+            document.getElementById('create-version-modal').classList.remove('show');
+        }
+    });
+    
+    // Setup test version form
+    const testVersionForm = document.getElementById('test-version-form');
+    testVersionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Get form values
+        const testInput = document.getElementById('test-input').value.trim();
+        
+        // Validate
+        if (!testInput) {
+            showToast('Test input is required');
+            return;
+        }
+        
+        // Send test request to server
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const message = {
+                type: 'use_agent_version',
+                agent_name: currentAgentName,
+                version_name: selectedVersionName,
+                text: testInput
+            };
+            socket.send(JSON.stringify(message));
+            
+            // Show loading state
+            document.getElementById('test-results').classList.remove('hidden');
+            document.getElementById('test-output').textContent = 'Loading response...';
+        }
+    });
+    
+    // Setup modal close buttons
+    document.getElementById('close-version-modal').addEventListener('click', () => {
+        document.getElementById('create-version-modal').classList.remove('show');
+    });
+    
+    document.getElementById('close-test-modal').addEventListener('click', () => {
+        document.getElementById('test-version-modal').classList.remove('show');
+    });
+    
+    // Setup cancel buttons
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Find the closest modal and close it
+            const modal = btn.closest('.modal');
+            modal.classList.remove('show');
+        });
+    });
+}
+
 function handleMessage(messageData) {
     console.log("Parsed message data:", messageData);
     
@@ -885,6 +1088,57 @@ function handleMessage(messageData) {
         }
         
         return;
+    }
+    else if (messageData.type === "agent_versions") {
+        // Handle agent versions data
+        const agentName = messageData.agent_name;
+        const versions = messageData.versions || [];
+        
+        console.log(`Received ${versions.length} versions for agent: ${agentName}`);
+        
+        // Store the versions
+        currentAgentVersions = versions;
+        
+        // Update the version selector if this is the currently selected agent
+        if (selectedAgentId === agentName) {
+            const versionSelector = document.getElementById('prompt-version-selector');
+            
+            // Clear all options except the first (original)
+            while (versionSelector.options.length > 1) {
+                versionSelector.remove(1);
+            }
+            
+            // Add the versions
+            versions.forEach(version => {
+                const option = document.createElement('option');
+                option.value = version.version_name;
+                
+                // Format the name with description if available
+                if (version.description) {
+                    option.textContent = `${version.version_name} (${version.description})`;
+                } else {
+                    option.textContent = version.version_name;
+                }
+                
+                versionSelector.appendChild(option);
+            });
+        }
+        
+        return;
+    }
+    else if (messageData.type === "insight" && messageData.agent === currentAgentName) {
+        // Special handling for test results
+        // Check if we're in test mode (test modal is visible)
+        const testModal = document.getElementById('test-version-modal');
+        if (testModal.classList.contains('show')) {
+            // This is a test result, display it in the test output
+            const testOutput = document.getElementById('test-output');
+            if (testOutput) {
+                testOutput.innerHTML = formatContent(messageData.content);
+            }
+            // Don't continue normal insight processing
+            return;
+        }
     }
     else {
         console.warn("Unknown message type:", messageData.type);

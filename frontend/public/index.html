@@ -185,7 +185,24 @@
                                     <!-- Trigger keywords will be displayed here -->
                                 </div>
                                 
-                                <h4>Prompt Template</h4>
+                                <h4 class="prompt-header">
+                                    Prompt Template
+                                    <div class="prompt-version-controls">
+                                        <select id="prompt-version-selector" class="prompt-version-selector">
+                                            <option value="original">Original</option>
+                                            <!-- Other versions will be populated by JavaScript -->
+                                        </select>
+                                        <button id="create-version-btn" class="action-btn">
+                                            <i class="fas fa-plus"></i> New Version
+                                        </button>
+                                        <button id="test-version-btn" class="action-btn">
+                                            <i class="fas fa-vial"></i> Test
+                                        </button>
+                                        <button id="delete-version-btn" class="action-btn delete-btn" disabled>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </h4>
                                 <pre id="detail-agent-prompt" class="prompt-template">Prompt template will appear here.</pre>
                             </div>
                             <div class="agent-action-buttons">
@@ -198,6 +215,63 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Agent Version Modal -->
+    <div id="create-version-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Agent Version</h2>
+                <button class="modal-close" id="close-version-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-version-form">
+                    <div class="form-group">
+                        <label for="version-name">Version Name:</label>
+                        <input type="text" id="version-name" required placeholder="e.g., v2, more_specific, better_format">
+                    </div>
+                    <div class="form-group">
+                        <label for="version-description">Description (optional):</label>
+                        <textarea id="version-description" placeholder="What's different about this version?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="version-prompt">Prompt Template:</label>
+                        <textarea id="version-prompt" required rows="15"></textarea>
+                        <small class="form-help">Edit the prompt template. This will create a new version and won't affect the original.</small>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="submit-btn">Save Version</button>
+                        <button type="button" class="cancel-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Agent Version Modal -->
+    <div id="test-version-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Test Agent Version</h2>
+                <button class="modal-close" id="close-test-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="test-version-form">
+                    <div class="form-group">
+                        <label for="test-input">Test Input:</label>
+                        <textarea id="test-input" required rows="6" placeholder="Enter sample text here to test how this agent will respond..."></textarea>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="submit-btn">Run Test</button>
+                        <button type="button" class="cancel-btn">Cancel</button>
+                    </div>
+                </form>
+                <div id="test-results" class="test-results hidden">
+                    <h3>Test Results</h3>
+                    <div id="test-output"></div>
                 </div>
             </div>
         </div>

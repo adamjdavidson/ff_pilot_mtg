@@ -352,8 +352,12 @@ async def websocket_endpoint(websocket: WebSocket):
                                 agent_config["model"] = agent_model
                                 logger.info(f"Agent '{agent_name}' will use model: {agent_model}")
                             
-                            # Add to global list (in-memory only, will be lost on restart)
+                            # Add to global list and persist to disk
                             CUSTOM_AGENTS.append(agent_config)
+                            
+                            # Save to file
+                            from traffic_cop import save_custom_agents
+                            save_custom_agents()
                             
                             # Send confirmation
                             await websocket.send_text(json.dumps({
@@ -404,6 +408,10 @@ async def websocket_endpoint(websocket: WebSocket):
                                 # Update in the list
                                 CUSTOM_AGENTS[agent_index] = agent_config
                                 
+                                # Save to file
+                                from traffic_cop import save_custom_agents
+                                save_custom_agents()
+                                
                                 # Send confirmation
                                 await websocket.send_text(json.dumps({
                                     "type": "system_message",
@@ -437,6 +445,10 @@ async def websocket_endpoint(websocket: WebSocket):
                                     break
                             
                             if agent_found:
+                                # Save to file
+                                from traffic_cop import save_custom_agents
+                                save_custom_agents()
+                                
                                 # Send confirmation
                                 await websocket.send_text(json.dumps({
                                     "type": "system_message",
@@ -534,65 +546,150 @@ async def websocket_endpoint(websocket: WebSocket):
                                     }))
                                     continue
                                 
-                                # Map agent names to their file names
-                                agent_files = {
-                                    "Radical Expander": "radical_expander.py",
-                                    "Product Agent": "product_agent.py",
-                                    "Debate Agent": "debate_agent.py", 
-                                    "Skeptical Agent": "skeptical_agent.py",
-                                    "Next Step Agent": "one_small_thing_agent.py",
-                                    "Disruptor": "disruptor_agent.py"
-                                }
+                                # Use the extract_agent_prompt utility function
+                                from utils import extract_agent_prompt
+                                result = extract_agent_prompt(agent_name)
                                 
-                                if agent_name in agent_files:
-                                    try:
-                                        # Get the file content
-                                        file_path = os.path.join(os.path.dirname(__file__), "agents", agent_files[agent_name])
-                                        with open(file_path, "r") as f:
-                                            content = f.read()
-                                        
-                                        # Extract the prompt from the file
-                                        # This is a simple extraction method and might need to be adjusted
-                                        # for more complex files
-                                        prompt = ""
-                                        if "direct_prompt =" in content:
-                                            # Extract content between triple quotes after direct_prompt =
-                                            start_idx = content.find("direct_prompt = f\"\"\"", 0)
-                                            if start_idx > 0:
-                                                start_idx += len("direct_prompt = f\"\"\"")
-                                                end_idx = content.find("\"\"\"", start_idx)
-                                                if end_idx > start_idx:
-                                                    prompt = content[start_idx:end_idx]
-                                            
-                                        # If not found with direct_prompt, try other patterns
-                                        if not prompt and "prompt =" in content:
-                                            start_idx = content.find("prompt = f\"\"\"", 0)
-                                            if start_idx > 0:
-                                                start_idx += len("prompt = f\"\"\"")
-                                                end_idx = content.find("\"\"\"", start_idx)
-                                                if end_idx > start_idx:
-                                                    prompt = content[start_idx:end_idx]
-                                                    
-                                        # Send the prompt back to the client
-                                        await websocket.send_text(json.dumps({
-                                            "type": "agent_prompt",
-                                            "agent_name": agent_name,
-                                            "prompt": prompt.strip()
-                                        }))
-                                        logger.info(f"Sent prompt for agent: {agent_name}")
-                                    except Exception as e:
-                                        logger.error(f"Error retrieving prompt for agent {agent_name}: {e}")
-                                        await websocket.send_text(json.dumps({
-                                            "type": "system_message",
-                                            "message": f"Error retrieving prompt for agent {agent_name}: {str(e)}"
-                                        }))
+                                if "error" in result:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": result["error"]
+                                    }))
+                                else:
+                                    # Send the prompt back to the client
+                                    await websocket.send_text(json.dumps({
+                                        "type": "agent_prompt",
+                                        "agent_name": agent_name,
+                                        "prompt": result["prompt_text"].strip(),
+                                        "is_original": True
+                                    }))
+                                    logger.info(f"Sent prompt for agent: {agent_name}")
+                                    
+                            # Handle get_agent_versions message
+                            elif message_type == "get_agent_versions":
+                                agent_name = message_json.get("agent_name", "")
+                                if not agent_name:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name is required"
+                                    }))
+                                    continue
+                                
+                                # Get versions for this agent
+                                from agent_versions import get_agent_versions, extract_original_agent_prompt
+                                
+                                # Get the original prompt first
+                                original = extract_original_agent_prompt(agent_name)
+                                
+                                # Get all custom versions
+                                versions = get_agent_versions(agent_name)
+                                
+                                # Send the versions back to the client
+                                await websocket.send_text(json.dumps({
+                                    "type": "agent_versions",
+                                    "agent_name": agent_name,
+                                    "original": original,
+                                    "versions": versions
+                                }))
+                                logger.info(f"Sent {len(versions)} versions for agent: {agent_name}")
+                            
+                            # Handle create_agent_version message
+                            elif message_type == "create_agent_version":
+                                agent_name = message_json.get("agent_name", "")
+                                version_name = message_json.get("version_name", "")
+                                prompt_text = message_json.get("prompt_text", "")
+                                description = message_json.get("description", "")
+                                
+                                if not agent_name or not version_name or not prompt_text:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name, version name, and prompt text are required"
+                                    }))
+                                    continue
+                                
+                                # Create new version
+                                from agent_versions import create_agent_version
+                                result = create_agent_version(agent_name, prompt_text, version_name, description)
+                                
+                                if "error" in result:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": result["error"]
+                                    }))
                                 else:
                                     await websocket.send_text(json.dumps({
                                         "type": "system_message",
-                                        "message": f"Agent not found or is a custom agent: {agent_name}"
+                                        "message": f"Created new version '{version_name}' for agent '{agent_name}'"
                                     }))
+                                    logger.info(f"Created new version '{version_name}' for agent '{agent_name}'")
                             
-                            # Handle update_agent_prompt message
+                            # Handle delete_agent_version message
+                            elif message_type == "delete_agent_version":
+                                agent_name = message_json.get("agent_name", "")
+                                version_name = message_json.get("version_name", "")
+                                
+                                if not agent_name or not version_name:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name and version name are required"
+                                    }))
+                                    continue
+                                
+                                # Delete version
+                                from agent_versions import delete_agent_version
+                                result = delete_agent_version(agent_name, version_name)
+                                
+                                if "error" in result:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": result["error"]
+                                    }))
+                                else:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": f"Deleted version '{version_name}' of agent '{agent_name}'"
+                                    }))
+                                    logger.info(f"Deleted version '{version_name}' of agent '{agent_name}'")
+                            
+                            # Handle use_agent_version message
+                            elif message_type == "use_agent_version":
+                                agent_name = message_json.get("agent_name", "")
+                                version_name = message_json.get("version_name", "")
+                                text = message_json.get("text", "")
+                                
+                                if not agent_name or not text:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name and text are required"
+                                    }))
+                                    continue
+                                
+                                # Create config for the agent
+                                agent_config = {
+                                    "name": agent_name,
+                                    "type": "versioned",
+                                }
+                                
+                                # Include version name if specified
+                                if version_name:
+                                    agent_config["version_name"] = version_name
+                                
+                                # Run the specified version of the agent
+                                from traffic_cop import run_dynamic_agent
+                                await run_dynamic_agent(
+                                    text=text,
+                                    model=gemini_model,
+                                    broadcaster=broadcast_insight,
+                                    agent_config=agent_config
+                                )
+                                
+                                await websocket.send_text(json.dumps({
+                                    "type": "system_message",
+                                    "message": f"Running {agent_name} with version: {version_name or 'original'}"
+                                }))
+                                logger.info(f"Running {agent_name} with version: {version_name or 'original'}")
+                            
+                            # Handle update_agent_prompt message (legacy method)
                             elif message_type == "update_agent_prompt":
                                 agent_name = message_json.get("agent_name", "")
                                 new_prompt = message_json.get("prompt", "")
