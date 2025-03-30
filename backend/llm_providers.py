@@ -103,7 +103,7 @@ class UnifiedLLMClient:
                 # Set as default if Gemini isn't available
                 if not self.gemini_model and not self.active_provider:
                     self.active_provider = ModelProvider.CLAUDE
-                    self.active_model_name = "claude-3-7-sonnet-20240307"
+                    self.active_model_name = "claude-3-7-sonnet-latest"
             else:
                 logger.warning("No Anthropic API key found in environment variables")
                 
@@ -129,7 +129,7 @@ class UnifiedLLMClient:
             
         elif provider == ModelProvider.CLAUDE and self.claude_client:
             self.active_provider = ModelProvider.CLAUDE
-            self.active_model_name = model_name or "claude-3-7-sonnet-20240307"
+            self.active_model_name = model_name or "claude-3-7-sonnet-latest"
             logger.info(f"Set active provider to Claude: {self.active_model_name}")
             return True
             
@@ -251,9 +251,9 @@ class UnifiedLLMClient:
             
         if self.claude_client:
             models[ModelProvider.CLAUDE] = [
-                "claude-3-7-sonnet-20240307", 
-                "claude-3-5-sonnet-20240620", 
-                "claude-3-opus-20240229"
+                "claude-3-7-sonnet-latest", 
+                "claude-3-5-sonnet-latest", 
+                "claude-3-opus-latest"
             ]
             
         return models
