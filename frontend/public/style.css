@@ -218,6 +218,45 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.9rem;
 }
 
+/* Model Selector */
+.model-selector {
+    margin-left: 1rem;
+    position: relative;
+}
+
+.model-selector select {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    appearance: none;
+    padding-right: 2rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.model-selector select:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.model-selector select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.model-selector::after {
+    content: '▼';
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--white);
+    font-size: 0.7rem;
+    pointer-events: none;
+}
+
 /* Insights Header */
 .insights-header {
     padding: 1.5rem 2rem;

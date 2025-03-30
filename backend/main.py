@@ -12,6 +12,9 @@ from google.cloud import speech
 from google.cloud import aiplatform
 from vertexai.generative_models import GenerativeModel
 
+# Import unified LLM client
+from llm_providers import llm_client, ModelProvider
+
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
 # Define logger with name "main" so other modules can get it
@@ -22,6 +25,7 @@ LOCATION = "us-east1"
 SPEECH_LANGUAGE_CODE = "en-US"
 SPEECH_SAMPLE_RATE_HERTZ = 16000
 GEMINI_MODEL_NAME = "gemini-1.5-pro-002" # Use your confirmed model
+CLAUDE_MODEL_NAME = "claude-3-7-sonnet-20240307" # Default Claude model
 
 # Rate limit for Traffic Cop calls
 last_traffic_cop_call_time = 0.0
@@ -33,7 +37,7 @@ CONTEXT_BUFFER_SIZE = 10
 
 # --- Initialize Clients (Global within main) ---
 speech_client = None
-gemini_model = None
+gemini_model = None  # Keep for backward compatibility
 
 try:
     speech_client = speech.SpeechAsyncClient()
@@ -41,22 +45,29 @@ try:
 except Exception as e:
     logger.error(f"Could not initialize Google Cloud SpeechAsyncClient: {e}")
 
-try:
-    # Ensure correct endpoint for your location if needed
-    # endpoint = f"{LOCATION}-aiplatform.googleapis.com"
-    aiplatform.init(project=PROJECT_ID, location=LOCATION) # api_endpoint=endpoint)
-    logger.info(f"Vertex AI initialized for project {PROJECT_ID} in {LOCATION}.")
+# Check if we have available LLM providers
+available_models = llm_client.available_models()
+if available_models:
+    model_info = []
+    for provider, models in available_models.items():
+        model_info.append(f"{provider}: {', '.join(models)}")
+    logger.info(f"Available LLM models: {'; '.join(model_info)}")
+    
+    # Set default model based on environment or fallback to available
+    default_provider = os.getenv("DEFAULT_LLM_PROVIDER", "").lower()
+    if default_provider == "claude" and ModelProvider.CLAUDE in available_models:
+        llm_client.set_active_provider(ModelProvider.CLAUDE, CLAUDE_MODEL_NAME)
+    elif default_provider == "gemini" and ModelProvider.GEMINI in available_models:
+        llm_client.set_active_provider(ModelProvider.GEMINI, GEMINI_MODEL_NAME)
+    elif not llm_client.active_provider:
+        # If no specific default, use whatever is available (the client constructor will have set one)
+        logger.info(f"Using default provider: {llm_client.active_provider} with model {llm_client.active_model_name}")
+else:
+    logger.error("No LLM providers available. Please check your credentials and environment variables.")
 
-    gemini_model = GenerativeModel(GEMINI_MODEL_NAME)
-    logger.info(f"Vertex AI SDK GenerativeModel loaded: {GEMINI_MODEL_NAME}.")
-
-except ImportError as e:
-     logger.error(f"ImportError during Vertex AI init: {e}. Make sure google-cloud-aiplatform is installed.")
-     gemini_model = None
-except Exception as e:
-    logger.error(f"Could not initialize Vertex AI / Gemini: {e}")
-    logger.exception("Full traceback:")
-    gemini_model = None
+# For backward compatibility, still set gemini_model
+if llm_client.gemini_model:
+    gemini_model = llm_client.gemini_model
 
 # --- Import AI logic AFTER clients are potentially initialized ---
 try:
@@ -302,6 +313,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             agent_prompt = config.get("prompt", "")
                             agent_icon = config.get("icon", "fa-brain")
                             agent_triggers = config.get("triggers", [])
+                            agent_model = config.get("model", "")  # Optional model specification
                             
                             logger.info(f"Creating custom agent: {agent_name}")
                             
@@ -317,6 +329,11 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "type": "custom",
                                 "triggers": agent_triggers
                             }
+                            
+                            # Add model preference if specified
+                            if agent_model:
+                                agent_config["model"] = agent_model
+                                logger.info(f"Agent '{agent_name}' will use model: {agent_model}")
                             
                             # Add to global list (in-memory only, will be lost on restart)
                             CUSTOM_AGENTS.append(agent_config)
@@ -337,6 +354,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             agent_prompt = config.get("prompt", "")
                             agent_icon = config.get("icon", "fa-brain")
                             agent_triggers = config.get("triggers", [])
+                            agent_model = config.get("model", "")  # Optional model specification
                             
                             logger.info(f"Updating custom agent: {old_name} -> {agent_name}")
                             
@@ -360,6 +378,11 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "type": "custom",
                                     "triggers": agent_triggers
                                 }
+                                
+                                # Add model preference if specified
+                                if agent_model:
+                                    agent_config["model"] = agent_model
+                                    logger.info(f"Agent '{agent_name}' will use model: {agent_model}")
                                 
                                 # Update in the list
                                 CUSTOM_AGENTS[agent_index] = agent_config
@@ -413,7 +436,78 @@ async def websocket_endpoint(websocket: WebSocket):
                                 
                                 logger.warning(f"Failed to delete agent: {agent_name} not found")
                         else:
-                            logger.warning(f"Received unknown message type: {message_type}")
+                            # Handle get_available_models request
+                            if message_type == "get_available_models":
+                                # Get available models from the LLM client
+                                available_models = llm_client.available_models()
+                                active_provider = llm_client.active_provider
+                                active_model = llm_client.active_model_name
+                                
+                                # Send response with available models
+                                await websocket.send_text(json.dumps({
+                                    "type": "available_models",
+                                    "data": {
+                                        "models": available_models,
+                                        "active_provider": str(active_provider) if active_provider else None,
+                                        "active_model": active_model
+                                    }
+                                }))
+                                logger.info(f"Sent available models to client")
+                            
+                            # Handle set_model message for changing the active LLM
+                            elif message_type == "set_model":
+                                model_provider = message_json.get("provider", "").lower()
+                                model_name = message_json.get("model", "")
+                                
+                                if model_provider == "claude":
+                                    # Set Claude as active model
+                                    if llm_client.claude_client:
+                                        success = llm_client.set_active_provider(ModelProvider.CLAUDE, model_name)
+                                        if success:
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": f"Active model set to Claude: {llm_client.active_model_name}"
+                                            }))
+                                            logger.info(f"Changed active model to Claude: {llm_client.active_model_name}")
+                                        else:
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": "Failed to set Claude as active model"
+                                            }))
+                                    else:
+                                        await websocket.send_text(json.dumps({
+                                            "type": "system_message",
+                                            "message": "Claude is not available. Check your API key configuration."
+                                        }))
+                                        
+                                elif model_provider == "gemini":
+                                    # Set Gemini as active model
+                                    if llm_client.gemini_model:
+                                        success = llm_client.set_active_provider(ModelProvider.GEMINI, model_name)
+                                        if success:
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": f"Active model set to Gemini: {llm_client.active_model_name}"
+                                            }))
+                                            logger.info(f"Changed active model to Gemini: {llm_client.active_model_name}")
+                                        else:
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": "Failed to set Gemini as active model"
+                                            }))
+                                    else:
+                                        await websocket.send_text(json.dumps({
+                                            "type": "system_message",
+                                            "message": "Gemini is not available. Check your Google Cloud configuration."
+                                        }))
+                                        
+                                else:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": f"Unknown model provider: {model_provider}"
+                                    }))
+                            else:
+                                logger.warning(f"Received unknown message type: {message_type}")
                     
                     except json.JSONDecodeError:
                         logger.warning(f"Received non-JSON text message: {message_data[:100]}...")

@@ -3,11 +3,17 @@ import logging
 from vertexai.generative_models import GenerativeModel, Part, FinishReason
 import vertexai.generative_models as generative_models
 from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
+import sys
+import os
+
+# Add parent directory to path to import llm_providers
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from llm_providers import llm_client, ModelConfig
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
-async def run_dynamic_agent(text: str, model: GenerativeModel, broadcaster: callable, agent_config: dict):
+async def run_dynamic_agent(text: str, model, broadcaster: callable, agent_config: dict):
     """
     A flexible agent that can be configured at runtime with custom goals and parameters.
     
@@ -88,37 +94,63 @@ GUIDELINES:
     
     # --- API Call and Response Handling ---
     try:
-        logger.info(f"[{agent_name}] Sending request to Gemini model...")
-        response = await model.generate_content_async(
-            full_prompt,
-            generation_config=generation_config,
-            safety_settings=safety_settings
-        )
-        logger.debug(f"[{agent_name}] Raw response received: {response}")
+        # Use the model parameter for backwards compatibility if it's a GenerativeModel
+        # Otherwise, use the unified llm_client for maximum compatibility
+        logger.info(f"[{agent_name}] Sending request to LLM...")
         
-        if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-            logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-            # Don't send error card
-            return
-        elif response.text:
-            generated_text = response.text.strip()
-            if not generated_text:
-                logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
+        if isinstance(model, GenerativeModel):
+            # Legacy path - use directly provided Gemini model
+            response = await model.generate_content_async(
+                full_prompt,
+                generation_config=generation_config,
+                safety_settings=safety_settings
+            )
+            
+            # Check safety blocks
+            if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
+                logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
                 # Don't send error card
                 return
-            # Check for explicit insufficient context marker
-            elif generated_text.lower() == "no_relevant_context":
-                logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
-                # Don't send any response card when explicitly marked as no context
-                return
-            else:
-                logger.info(f"[{agent_name}] Successfully generated insight.")
-                await format_agent_response(agent_name, generated_text, broadcaster, "insight")
+                
+            generated_text = response.text if response.text else ""
+            
         else:
-            finish_reason = response.candidates[0].finish_reason if response.candidates else 'N/A'
-            logger.warning(f"[{agent_name}] Generation produced no text content. Finish Reason: {finish_reason}")
+            # Use unified client - preferred path
+            model_config = ModelConfig(
+                provider=llm_client.active_provider,
+                model_name=llm_client.active_model_name,
+                temperature=generation_config.get("temperature", 0.7),
+                max_tokens=generation_config.get("max_output_tokens", 500)
+            )
+            
+            model_response = await llm_client.generate_content(full_prompt, model_config)
+            generated_text = model_response.text
+            
+            # Log the model provider that was used
+            logger.info(f"[{agent_name}] Using {model_response.model_provider} model: {model_response.model_name}")
+            
+            # Check if the response was blocked for safety
+            if model_response.finish_reason == "SAFETY" or model_response.finish_reason == "BLOCKED":
+                logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
+                # Don't send error card
+                return
+                
+        # Process the response text
+        generated_text = generated_text.strip()
+        if not generated_text:
+            logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
             # Don't send error card
             return
+            
+        # Check for explicit insufficient context marker
+        elif generated_text.lower() == "no_relevant_context":
+            logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
+            # Don't send any response card when explicitly marked as no context
+            return
+            
+        else:
+            logger.info(f"[{agent_name}] Successfully generated insight.")
+            await format_agent_response(agent_name, generated_text, broadcaster, "insight")
             
     except Exception as e:
         logger.error(f"[{agent_name}] Error during Gemini API call or processing: {e}")

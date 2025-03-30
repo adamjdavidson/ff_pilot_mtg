@@ -6,6 +6,9 @@ import random
 from vertexai.generative_models import GenerativeModel, Part, FinishReason
 import vertexai.generative_models as generative_models
 
+# Import unified LLM client
+from llm_providers import llm_client, ModelConfig, ModelProvider
+
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
@@ -229,49 +232,73 @@ Which agent from the list above is the MOST relevant for this specific business 
 """
 
     try:
-        logger.info("Sending content-based routing request to Gemini...")
-        response = await model.generate_content_async(
-            prompt,
-            generation_config={"temperature": 0.5, "max_output_tokens": 50},  # Increased temperature for more variety
-            safety_settings={
-                generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            }
-        )
-        logger.debug(f"Routing response received: {response}")
+        logger.info("Sending content-based routing request to LLM...")
+        
+        # Check if using legacy Gemini model directly or unified client
+        if isinstance(model, GenerativeModel):
+            # Legacy path - use directly provided Gemini model
+            response = await model.generate_content_async(
+                prompt,
+                generation_config={"temperature": 0.5, "max_output_tokens": 50},
+                safety_settings={
+                    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                }
+            )
+            
+            if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
+                logger.warning("Routing decision blocked by safety settings. Defaulting to None.")
+                return "None"
+                
+            if response.text:
+                raw_text = response.text
+            else:
+                logger.warning("Empty response from legacy model")
+                return "None"
+                
+        else:
+            # Use unified client
+            model_config = ModelConfig(
+                provider=llm_client.active_provider,
+                model_name=llm_client.active_model_name,
+                temperature=0.5,
+                max_tokens=50
+            )
+            
+            model_response = await llm_client.generate_content(prompt, model_config)
+            
+            # Log which model was used
+            logger.info(f"Routing using {model_response.model_provider} model: {model_response.model_name}")
+            
+            if model_response.finish_reason == "SAFETY" or model_response.finish_reason == "BLOCKED":
+                logger.warning("Routing decision blocked by safety settings. Defaulting to None.")
+                return "None"
+                
+            raw_text = model_response.text
+            
+        # Process the response regardless of which path was used
+        raw_choice = raw_text.strip().replace('"', '').replace("'", '').replace('.', '').replace('`', '')
 
-        if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-             logger.warning("Routing decision blocked by safety settings. Defaulting to None.")
-             return "None"
+        # Check for exact match first (case-insensitive)
+        for agent_name in llm_agent_names:
+            if agent_name.lower() == raw_choice.lower():
+                logger.info(f"Routing decision (LLM - Exact): Trigger '{agent_name}'")
+                return agent_name
 
-        if response.text:
-            # More robust cleaning, handle potential markdown like ```agent_name```
-            raw_choice = response.text.strip().replace('"', '').replace("'", '').replace('.', '').replace('`', '')
+        # If no exact match, check containment (as fallback) - might be less reliable
+        for agent_name in llm_agent_names:
+            if agent_name.lower() in raw_choice.lower():
+                logger.info(f"Routing decision (LLM - Contained): Trigger '{agent_name}'")
+                return agent_name
 
-            # Check for exact match first (case-insensitive)
-            for agent_name in llm_agent_names:
-                if agent_name.lower() == raw_choice.lower():
-                    logger.info(f"Routing decision (LLM - Exact): Trigger '{agent_name}'")
-                    return agent_name
-
-            # If no exact match, check containment (as fallback) - might be less reliable
-            for agent_name in llm_agent_names:
-                 if agent_name.lower() in raw_choice.lower():
-                      logger.info(f"Routing decision (LLM - Contained): Trigger '{agent_name}'")
-                      return agent_name
-
-            # Check for "None" variations
-            if "none" in raw_choice.lower():
-                 logger.info("Routing decision (LLM): No agent needed ('None')")
-                 return "None"
-
-            # If we reach here, it's an unknown response
-            logger.warning(f"Routing failed: Model returned an unrecognized response: '{raw_choice}'. Defaulting to None.")
+        # Check for "None" variations
+        if "none" in raw_choice.lower():
+            logger.info("Routing decision (LLM): No agent needed ('None')")
             return "None"
 
-        else:
-             logger.warning("Routing failed: Model did not return a valid text response. Defaulting to None.")
-             return "None"
+        # If we reach here, it's an unknown response
+        logger.warning(f"Routing failed: Model returned an unrecognized response: '{raw_choice}'. Defaulting to None.")
+        return "None"
 
     except Exception as e:
         logger.error(f"Error during content-based routing with Gemini model: {e}")
@@ -282,7 +309,7 @@ Which agent from the list above is the MOST relevant for this specific business 
 async def trigger_agent(
     name: str,
     current_segment_text: str,
-    model: GenerativeModel,
+    model,  # Can be GenerativeModel or None (when using unified client)
     broadcaster: callable,
     context_buffer: str
 ):

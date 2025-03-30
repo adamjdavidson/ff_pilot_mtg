@@ -89,6 +89,16 @@ const builtInAgents = [
 // Store for custom agents (will be populated during runtime)
 let customAgents = [];
 
+// Store for available LLM models
+let availableModels = {
+    "gemini": ["gemini-1.5-pro-002"],
+    "claude": ["claude-3-7-sonnet-20240307"]
+};
+
+// Track active model
+let activeModelProvider = "gemini";
+let activeModelName = "gemini-1.5-pro-002";
+
 // Store for saved insights
 let savedInsights = JSON.parse(localStorage.getItem('savedInsights') || '[]');
 let activeFilter = 'all';
@@ -128,8 +138,136 @@ function setupEventListeners() {
         clearSavedBtn.addEventListener('click', clearSavedInsights);
     }
     
+    // Set up model selector
+    setupModelSelector();
+    
     // Agent Management
     setupAgentManagement();
+}
+
+// Set up model selector
+function setupModelSelector() {
+    const globalModelSelector = document.getElementById('global-model-selector');
+    
+    // Request available models from server after connection
+    if (globalModelSelector) {
+        // Set initial selection based on activeModelProvider and activeModelName
+        updateModelSelectorUI();
+        
+        // Handle model selection changes
+        globalModelSelector.addEventListener('change', function() {
+            const selectedValue = this.value;
+            const [provider, model] = selectedValue.split(':');
+            
+            if (provider && (provider === 'gemini' || provider === 'claude')) {
+                // Send model change request to server
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const message = {
+                        type: 'set_model',
+                        provider: provider,
+                        model: model || ''
+                    };
+                    socket.send(JSON.stringify(message));
+                    
+                    // Update local tracking variables
+                    activeModelProvider = provider;
+                    activeModelName = model;
+                    
+                    // Show feedback
+                    showToast(`Switching to ${provider} model: ${model || 'default'}`);
+                }
+            }
+        });
+    }
+}
+
+// Request available models from server
+function requestAvailableModels() {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        const message = {
+            type: 'get_available_models'
+        };
+        socket.send(JSON.stringify(message));
+    }
+}
+
+// Update model selector UI with available models
+function updateModelSelectorUI() {
+    const globalModelSelector = document.getElementById('global-model-selector');
+    const agentModelSelector = document.getElementById('edit-agent-model');
+    
+    if (globalModelSelector) {
+        // Clear existing options
+        globalModelSelector.innerHTML = '';
+        
+        // Add options for each provider and model
+        for (const [provider, models] of Object.entries(availableModels)) {
+            const providerName = provider === 'gemini' ? 'Gemini' : 'Claude';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = `${provider}:${model}`;
+                
+                // Create a shorter, more readable name for the model
+                let displayName = model;
+                if (model.includes('gemini-1.5-pro')) {
+                    displayName = 'Gemini 1.5 Pro';
+                } else if (model.includes('gemini-1.5-flash')) {
+                    displayName = 'Gemini 1.5 Flash';
+                } else if (model.includes('claude-3-7-sonnet')) {
+                    displayName = 'Claude 3.7 Sonnet';
+                } else if (model.includes('claude-3-5-sonnet')) {
+                    displayName = 'Claude 3.5 Sonnet';
+                } else if (model.includes('claude-3-opus')) {
+                    displayName = 'Claude 3 Opus';
+                }
+                
+                option.textContent = `${providerName}: ${displayName}`;
+                
+                // Set as selected if it matches the active model
+                if (provider === activeModelProvider && model === activeModelName) {
+                    option.selected = true;
+                }
+                
+                globalModelSelector.appendChild(option);
+            });
+        }
+    }
+    
+    // Also update the agent-specific model selector if it exists
+    if (agentModelSelector) {
+        // Keep the first "System Default" option
+        const defaultOption = agentModelSelector.options[0];
+        agentModelSelector.innerHTML = '';
+        agentModelSelector.appendChild(defaultOption);
+        
+        // Add options for each provider and model
+        for (const [provider, models] of Object.entries(availableModels)) {
+            const providerName = provider === 'gemini' ? 'Gemini' : 'Claude';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = `${provider}:${model}`;
+                
+                // Create a shorter, more readable name for the model
+                let displayName = model;
+                if (model.includes('gemini-1.5-pro')) {
+                    displayName = 'Gemini 1.5 Pro';
+                } else if (model.includes('gemini-1.5-flash')) {
+                    displayName = 'Gemini 1.5 Flash';
+                } else if (model.includes('claude-3-7-sonnet')) {
+                    displayName = 'Claude 3.7 Sonnet';
+                } else if (model.includes('claude-3-5-sonnet')) {
+                    displayName = 'Claude 3.5 Sonnet';
+                } else if (model.includes('claude-3-opus')) {
+                    displayName = 'Claude 3 Opus';
+                }
+                
+                option.textContent = `${providerName}: ${displayName}`;
+                agentModelSelector.appendChild(option);
+            });
+        }
+    }
 }
 
 // Setup Agent Management UI and Event Handlers
@@ -210,6 +348,16 @@ function setupAgentManagement() {
             document.getElementById('edit-agent-prompt').value = agent.prompt || 'You are {name}, a specialized AI agent focused on: {goal}\n\nAnalyze the following transcript and provide insights related to your specialty.\n\nTRANSCRIPT:\n"{text}"\n\nProvide a detailed analysis and actionable recommendations.';
             document.getElementById('edit-agent-triggers').value = agent.triggers.join(', ');
             
+            // Set model preference if specified
+            const modelSelector = document.getElementById('edit-agent-model');
+            if (modelSelector) {
+                if (agent.model) {
+                    modelSelector.value = agent.model;
+                } else {
+                    modelSelector.value = ''; // System default
+                }
+            }
+            
             // Show editor, hide details
             document.getElementById('agent-editor').classList.add('active');
             document.getElementById('agent-details').classList.add('hidden');
@@ -279,6 +427,7 @@ function setupAgentManagement() {
             const agentIcon = document.getElementById('edit-agent-icon').value;
             const agentGoal = document.getElementById('edit-agent-goal').value.trim();
             const agentPrompt = document.getElementById('edit-agent-prompt').value.trim();
+            const agentModel = document.getElementById('edit-agent-model').value;
             const triggerKeywords = document.getElementById('edit-agent-triggers').value
                 .split(',')
                 .map(word => word.trim())
@@ -299,6 +448,11 @@ function setupAgentManagement() {
                 prompt: agentPrompt,
                 triggers: triggerKeywords
             };
+            
+            // Add model preference if specified
+            if (agentModel) {
+                agentConfig.model = agentModel;
+            }
             
             if (isEditingNewAgent) {
                 // Create new agent
@@ -434,6 +588,33 @@ function setupAgentManagement() {
                 triggerTags.appendChild(tagSpan);
             });
             
+            // Update model information
+            const modelInfoElement = document.getElementById('detail-agent-model');
+            if (modelInfoElement) {
+                if (agent.model) {
+                    const [provider, model] = agent.model.split(':');
+                    const providerName = provider === 'gemini' ? 'Gemini' : 'Claude';
+                    
+                    // Format the model name nicely
+                    let displayName = model;
+                    if (model.includes('gemini-1.5-pro')) {
+                        displayName = 'Gemini 1.5 Pro';
+                    } else if (model.includes('gemini-1.5-flash')) {
+                        displayName = 'Gemini 1.5 Flash';
+                    } else if (model.includes('claude-3-7-sonnet')) {
+                        displayName = 'Claude 3.7 Sonnet';
+                    } else if (model.includes('claude-3-5-sonnet')) {
+                        displayName = 'Claude 3.5 Sonnet';
+                    } else if (model.includes('claude-3-opus')) {
+                        displayName = 'Claude 3 Opus';
+                    }
+                    
+                    modelInfoElement.textContent = `${providerName}: ${displayName}`;
+                } else {
+                    modelInfoElement.textContent = 'System Default';
+                }
+            }
+            
             // Update prompt template
             document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'Default prompt template (not specified)';
             
@@ -465,6 +646,9 @@ function connectWebSocket() {
         console.log("WebSocket connection opened:", event);
         updateConnectionStatus('connected');
         requestMicrophoneAccess();
+        
+        // Request available models from the server
+        requestAvailableModels();
     };
     
     socket.onmessage = function(event) {
@@ -560,6 +744,30 @@ function handleMessage(messageData) {
     else if (messageData.type === "system_message") {
         // Handle system messages (like agent creation confirmation)
         showToast(messageData.message);
+        return;
+    }
+    else if (messageData.type === "available_models") {
+        // Handle available models data
+        console.log("Received available models:", messageData.data);
+        
+        // Update available models
+        if (messageData.data && messageData.data.models) {
+            availableModels = messageData.data.models;
+            
+            // Update active model tracking
+            if (messageData.data.active_provider) {
+                activeModelProvider = messageData.data.active_provider;
+            }
+            
+            if (messageData.data.active_model) {
+                activeModelName = messageData.data.active_model;
+            }
+            
+            // Update UI with new model data
+            updateModelSelectorUI();
+            
+            console.log(`Active model set to: ${activeModelProvider}:${activeModelName}`);
+        }
         return;
     }
     else {
