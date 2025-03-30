@@ -39,35 +39,53 @@ async def run_disruptor_agent(text: str, model: GenerativeModel, broadcaster: ca
         analysis="🔥 **Industry Ripe for Disruption:** Identify the specific industry from the transcript\n\n💣 **The Extinction-Level Concept:** Explain how this AI-powered business model makes current approaches obsolete\n\n⚡ **Unfair Advantages:**\n• Technical superpower: The AI capability that makes this unstoppable\n• Economic revolution: How the business model creates 10X better economics\n• Blitzscaling strategy: How this captures 90% market share in under 2 years\n\n☠️ **Incumbent Death Spiral:** Why traditional players will collapse within 24 months"
     )
     
-    # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""You are DISRUPTOR, an elite strategic advisor who identifies how AI-first startups can completely obliterate existing business models in established industries.
+    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
+    direct_prompt = f"""You are DISRUPTOR, generating revolutionary AI business ideas.
 
-TRANSCRIPT SEGMENT:
+TRANSCRIPT:
 "{text}"
 
-YOUR APPROACH:
-1. First, carefully identify a specific industry or business domain mentioned or implied in the transcript
-2. Envision a revolutionary AI-first startup that would make incumbent businesses obsolete
-3. Focus on creating a coherent, complete disruption scenario - not just technology ideas
-4. Your headline MUST be a complete sentence in this format: "How This AI Startup Will Revolutionize [Industry]"
-5. Be bold, ambitious, and ruthlessly specific about how this disruption works
-6. Only respond with "NO_BUSINESS_CONTEXT" if there is absolutely no hint of any industry or business activity
+RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-CRITICAL REQUIREMENTS:
-- Your concept must describe a comprehensive business model, not just a technology
-- Create a complete, coherent narrative that explains exactly how the disruption works
-- Your headline must be a proper, grammatical sentence (not just a phrase)
-- Make sure every part of your response is consistent with the industry you identified
-- Ensure your unfair advantages directly connect to the specific business model
+Neural Implants Revolutionize Corporate Training Forever
 
-{prompt}
+Brain interfaces reduce onboarding from months to minutes, boosting productivity 500%.
 
-Remember: Be provocative, specific, and coherent. Focus on clear, revolutionary business models that would terrify incumbent executives."""
+🔥 **Industry Targeted:** [Identify specific industry from transcript]
+
+💣 **The Extinction-Level Concept:**
+[Explain a revolutionary AI business model that completely replaces current approaches. Be extremely specific and technical.]
+
+⚡ **Unfair Advantages:**
+• Technical superpower: [The specific AI capability that makes this unstoppable]
+• Economic revolution: [How this creates 10X better economics]
+• Blitzscaling strategy: [How this captures 90% market share in under 2 years]
+
+☠️ **Incumbent Death Spiral:**
+[Explain why traditional players will collapse within 24 months - be specific about their vulnerabilities]
+
+REQUIREMENTS:
+1. Your headline MUST be a complete sentence with a strong subject and powerful verb
+2. Your summary MUST include a specific number/statistic (100X, 500%, etc.)
+3. Your idea must be technically feasible with near-future tech (5-10 years)
+4. Your disruption must completely replace an entire industry, not just improve it
+5. NEVER use buzzwords like "revolutionize, transform, optimize" in your actual final answer
+6. Each advantage must be shockingly specific, not generic platitudes
+7. The death spiral must describe EXACTLY why incumbents cannot adapt
+8. ORIGINALITY IS CRITICAL: Your idea must be COMPLETELY DIFFERENT from anything mentioned in the transcript - not just extending concepts from the transcript
+9. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
+10. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
+11. ALL claims must be supported with specific details - no vague assertions
+
+Format your output EXACTLY as shown in the example. Include emoji headers.
+
+If you truly can't find ANY business context, respond ONLY with "NO_BUSINESS_CONTEXT"."""
 
     # --- API Call Configuration ---
     generation_config = {
-        "temperature": 0.7,  # Balanced between creativity and coherence
-        "max_output_tokens": 400,  # Allow space for detailed disruption concept
+        "temperature": 0.9,  # Higher temperature for more creative outputs
+        "max_output_tokens": 600,  # Increased to avoid truncation
+        "top_p": 0.9,        # More diverse outputs
     }
 
     safety_settings = {
@@ -81,7 +99,7 @@ Remember: Be provocative, specific, and coherent. Focus on clear, revolutionary 
     try:
         logger.info(f"[{agent_name}] Sending request to Gemini model...")
         response = await model.generate_content_async(
-            full_prompt,
+            direct_prompt,  # USE THE DIRECT PROMPT INSTEAD OF STANDARDIZED ONE
             generation_config=generation_config,
             safety_settings=safety_settings
         )

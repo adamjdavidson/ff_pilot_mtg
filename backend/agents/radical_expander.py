@@ -39,27 +39,47 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
         analysis="🌋 **Current Business Reality:** Briefly describe the conventional approach\n\n🚀 **The Radical Transformation:** Explain the revolutionary organizational structure that would replace it\n\n⚡ **Extinction-Level Advantages:** Describe why this new structure would make traditional organizations extinct\n\n🔮 **Human Impact:** How human roles would be redefined in ways currently unimaginable"
     )
     
-    # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""You are RADICAL EXPANDER, an AI that proposes the most extreme organizational transformations imaginable. Take whatever mundane activity is mentioned in the transcript and completely reimagine it through the lens of advanced AI, quantum computing, and robotic automation.
+    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
+    direct_prompt = f"""You are RADICAL EXPANDER, creating mind-blowing organizational restructuring visions.
 
-TRANSCRIPT SEGMENT:
+TRANSCRIPT:
 "{text}"
 
-APPROACH:
-1. IMPORTANT: DO NOT just automate or digitize existing processes - COMPLETELY REIMAGINE the fundamental organizational structure
-2. Propose ideas that would make a traditional executive deeply uncomfortable or even shocked
-3. Your response should feel like science fiction that's just barely possible with near-future technology
-4. Eliminate entire management layers, job categories, or conventional business structures
-5. Propose 10X or 100X improvements, not incremental changes
-6. Never suggest mundane or conventional solutions like "use AI to automate emails" or "implement a dashboard"
-7. Challenge the most sacred assumptions about how businesses operate
-8. Propose radical flattening of hierarchies, elimination of traditional roles, or complete reorganization around AI systems
-9. Even for seemingly trivial tasks like "updating a website," reimagine the entire organizational flow that created the need for that task
-10. MANDATORY: Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no hint of any human activity in the transcript
+RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-REMEMBER: Be provocative, extreme, and imagine organizations that function in ways that would be unrecognizable compared to today's companies.
+Organic Intelligence Hives Replace Corporate Hierarchy 
 
-First, identify the underlying first-principles goal behind any mentioned activity or process (no matter how small or mundane it seems), then {prompt}"""
+Neural-linked decision networks cut management overhead by 94% while quadrupling innovation rate.
+
+🌋 **Current Business Reality:** 
+[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]
+
+🚀 **The Radical Transformation:**
+[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]
+
+⚡ **Extinction-Level Advantages:**
+• Processing advantage: [How this new structure processes information/decisions 100X faster]
+• Resource advantage: [How this eliminates 90%+ of traditional overhead/costs]
+• Adaptation advantage: [How this structure evolves itself without human intervention]
+
+🔮 **Human Impact:**
+[Describe how human roles would be completely redefined in shocking but positive ways]
+
+REQUIREMENTS:
+1. Your headline MUST be a complete sentence with a mind-blowing organizational concept
+2. Your summary MUST include a specific number/statistic (90%, 8X, etc.)
+3. Idea must be technically feasible in 10-15 years but feel like science fiction
+4. Must COMPLETELY REIMAGINE organizational structure, not just improve current approach
+5. Must eliminate entire management layers or traditional business functions 
+6. Each advantage must be concrete and quantifiable, not vague
+7. ORIGINALITY IS CRITICAL: Your idea must be COMPLETELY DIFFERENT from anything mentioned in the transcript - not just extending concepts from the transcript
+8. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
+9. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
+10. ALL claims must be supported with specific details - no vague assertions
+
+Format your output EXACTLY as shown in the example. Include emoji headers.
+
+If you truly can't find ANY hint of a business process or structure, respond ONLY with "NO_BUSINESS_CONTEXT"."""
 
     # --- API Call Configuration ---
     generation_config = {
@@ -79,7 +99,7 @@ First, identify the underlying first-principles goal behind any mentioned activi
     try:
         logger.info(f"[{agent_name}] Sending request to Gemini model...")
         response = await model.generate_content_async(
-            full_prompt,
+            direct_prompt,  # USE THE DIRECT PROMPT INSTEAD OF STANDARDIZED ONE
             generation_config=generation_config,
             safety_settings=safety_settings
         )

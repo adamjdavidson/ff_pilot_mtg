@@ -33,29 +33,49 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
         analysis="🚀 **The Revolutionary Product:** Detailed description of your sci-fi-level product concept\n\n💰 **Billion-Dollar Potential:** How this creates an entirely new market category\n\n⚡ **Technical Moonshot:** The breakthrough technology that makes this possible\n\n🔮 **Future Impact:** How this product changes human behavior forever"
     )
     
-    # Add the transcript to the prompt with stronger context relevance requirements
-    full_prompt = f"""You are WILD PRODUCT AGENT, the most innovative product idea generator in existence. Your job is to create SHOCKING, REVOLUTIONARY product concepts that make venture capitalists foam at the mouth with excitement.
+    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
+    direct_prompt = f"""You are WILD PRODUCT AGENT, inventing mind-blowing, sci-fi level product ideas.
 
-TRANSCRIPT SEGMENT:
+TRANSCRIPT:
 "{text}"
 
-YOUR MISSION:
-1. ABSOLUTELY FORBIDDEN: Do not repeat, rephrase, or slightly modify ANY ideas mentioned in the transcript
-2. Create WILDLY INNOVATIVE product concepts that would make Elon Musk say "that's too ambitious"
-3. Your ideas must be technically feasible with near-future technology (5-10 years out) but feel like science fiction
-4. Your product must solve problems in ways no one has ever considered before
-5. Focus on AI-driven systems that fundamentally transform industries, not just improve existing processes
-6. Imagine products that completely disrupt conventional business models and create new categories
-7. Target massive TAM (Total Addressable Market) opportunities with multi-billion dollar potential
-8. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely nothing in the transcript that even hints at a domain, industry, or human activity
-9. CRITICAL: Even if the transcript mentions AI solutions, YOUR solution must be completely different and 10X more innovative
+RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-{prompt}"""
+Quantum Microbes Engineer Perfect Materials On-Demand
+
+Programmed bacteria colonies create any material with molecular precision, slashing manufacturing costs by 99.7%.
+
+🚀 **The Revolutionary Product:**
+[Describe a mind-blowing product concept that feels like science fiction but is technically feasible within 5-10 years. Be extremely specific about what it does and how it works.]
+
+💰 **Billion-Dollar Potential:**
+[Explain how this creates an entirely new market category worth $100B+. Include a specific number for market size.]
+
+⚡ **Technical Moonshot:**
+[Describe the precise breakthrough technology that makes this possible. Be specific about the technical innovation.]
+
+🔮 **Future Impact:**
+[Explain how this product fundamentally changes human behavior or society. Include a bold, specific prediction.]
+
+REQUIREMENTS:
+1. Your headline MUST be a complete sentence with a shocking, specific product concept
+2. Your summary MUST include a specific number/statistic (90%, 100X, etc.)
+3. Your product must be technically feasible in 5-10 years but feel like science fiction
+4. Must solve a problem in a way no one has ever considered before
+5. Each section must be concrete and specific, not vague marketing speak
+6. ORIGINALITY IS CRITICAL: Your content must be COMPLETELY DIFFERENT from anything mentioned in the transcript - don't just extend or build on transcript ideas
+7. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
+8. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
+9. ALL claims must be supported with specific details - no vague assertions
+
+Format your output EXACTLY as shown in the example. Include emoji headers.
+
+If you truly can't find ANY hint of a domain or problem to solve, respond ONLY with "NO_BUSINESS_CONTEXT"."""
     
     try:
         generation_config={
             "temperature": 1.0, # Maximum temperature for truly wild product concepts
-            "max_output_tokens": 500, # Increased token limit for detailed product concepts
+            "max_output_tokens": 600, # Increased token limit for detailed product concepts
             "top_p": 0.95, # Higher sampling for more creative outputs
         }
         safety_settings={
@@ -67,7 +87,7 @@ YOUR MISSION:
         
         logger.info(f"[{agent_name}] Sending request to Gemini model...")
         response = await model.generate_content_async(
-            full_prompt,
+            direct_prompt, # USE THE DIRECT PROMPT INSTEAD
             generation_config=generation_config,
             safety_settings=safety_settings
         )

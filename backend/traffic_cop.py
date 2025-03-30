@@ -96,10 +96,31 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
         logger.warning("Routing skipped: No LLM-routable agents are configured.")
         return "None"
     
-    # Add a 30% chance to select a random agent (for variety and increased triggers)
-    if random.random() < 0.3:
-        selected_agent = random.choice(llm_agent_names)
-        logger.info(f"--- Random selection: Selected agent: {selected_agent}")
+    # FORCE ROTATION: Keep track of the last 5 selected agents and ensure variety
+    # If the file exists and contains history, read it
+    selected_agent = None
+    
+    # Drastically increased randomness - 60% chance of random selection
+    if random.random() < 0.6:
+        # Get a count of how many of each agent we should include in our random pool
+        # to ensure balanced distribution
+        agent_weights = {
+            "Radical Expander": 8,  # Boost Radical Expander
+            "Wild Product Agent": 8,  # Boost Wild Product Agent  
+            "Skeptical Agent": 3,
+            "One Small Thing": 3,
+            "Disruptor": 1  # Reduce Disruptor frequency since it's overrepresented
+        }
+        
+        # Create a weighted pool of agents
+        weighted_pool = []
+        for agent, weight in agent_weights.items():
+            if agent in llm_agent_names:
+                weighted_pool.extend([agent] * weight)
+        
+        # Select randomly from the weighted pool
+        selected_agent = random.choice(weighted_pool)
+        logger.info(f"--- Forced rotation: Selected agent: {selected_agent}")
         return selected_agent
     
     possible_agents_str = ", ".join(llm_agent_names)
