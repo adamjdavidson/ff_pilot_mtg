@@ -120,16 +120,16 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     # If the file exists and contains history, read it
     selected_agent = None
     
-    # Drastically increased randomness - 60% chance of random selection
-    if random.random() < 0.6:
+    # Moderate randomness - 50% chance of random selection
+    if random.random() < 0.5:
         # Get a count of how many of each agent we should include in our random pool
         # to ensure balanced distribution
         agent_weights = {
-            "Radical Expander": 8,  # Boost Radical Expander
-            "Product Agent": 8,     # Boost Product Agent  
-            "Skeptical Agent": 3,
-            "One Small Thing": 3,
-            "Disruptor": 6  # Increased to ensure more balanced distribution
+            "Radical Expander": 4,  # Reduced from 8 to address overrepresentation
+            "Product Agent": 6,     # Slightly reduced but still high priority
+            "Skeptical Agent": 4,   # Increased from 3 to improve representation
+            "One Small Thing": 4,   # Increased from 3 to improve representation
+            "Disruptor": 5          # Slightly reduced but still well-represented
         }
         
         # Create a weighted pool of agents

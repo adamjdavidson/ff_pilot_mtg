@@ -30,6 +30,21 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
         except Exception as broadcast_err:
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
+        
+    # Check if the transcript contains any business-related terms
+    business_terms = [
+        "business", "company", "organization", "team", "management", "process", 
+        "project", "client", "customer", "market", "product", "service", 
+        "strategy", "operation", "workflow", "efficiency", "performance", 
+        "meeting", "communication", "hiring", "goal", "objective", "growth"
+    ]
+    
+    has_business_context = any(term.lower() in text.lower() for term in business_terms)
+    
+    if not has_business_context:
+        logger.info(f"[{agent_name}] Skipped: No business context detected in transcript")
+        # Don't send any message - silently skip
+        return
 
     # Customize the standardized prompt for this specific agent
     specific_content = "provocative scenarios for achieving the fundamental goal through completely reimagined organizational structures that would be unrecognizable to today's executives"
@@ -40,30 +55,30 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
     )
     
     # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
-    direct_prompt = f"""You are RADICAL EXPANDER, creating mind-blowing organizational restructuring visions.
+    direct_prompt = f"""You are RADICAL EXPANDER, creating mind-blowing organizational restructuring visions that DIRECTLY address challenges mentioned in the transcript.
 
 TRANSCRIPT:
 "{text}"
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-🌊 Our fluid team structures adapt instantly to the problem, not the org chart
+🌊 [Create a headline that directly connects to a specific business challenge or structure mentioned in the transcript]
 
-🧩 Teams form around challenges rather than reporting lines, creating natural expertise alignment.
+🧩 [Create a 1-2 sentence summary that directly connects to the transcript content]
 
 🌋 **Current Business Reality:** 
-[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]
+[Extract a SPECIFIC business process/structure EXPLICITLY MENTIONED in the transcript and describe its conventional approach in 1-2 sentences. If you cannot identify a specific business process/structure in the transcript, respond ONLY with "NO_BUSINESS_CONTEXT"]
 
 🚀 **The Radical Transformation:**
-[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]
+[Describe in detail a revolutionary organizational structure that would address the SPECIFIC challenge from the transcript. Be concrete about how it connects to what was discussed.]
 
 ⚡ **Extinction-Level Advantages:**
-• Processing advantage: [How this new structure processes information/decisions 100X faster]
-• Resource advantage: [How this eliminates 90%+ of traditional overhead/costs]
-• Adaptation advantage: [How this structure evolves itself without human intervention]
+• Processing advantage: [How this new structure improves information/decision flows]
+• Resource advantage: [How this reduces traditional overhead/costs]
+• Adaptation advantage: [How this structure enables greater flexibility and learning]
 
 🔮 **Human Impact:**
-[Describe how human roles would be completely redefined in shocking but positive ways]
+[Describe how human roles would be redefined in positive ways that connect to the context]
 
 REQUIREMENTS:
 1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
@@ -74,19 +89,19 @@ REQUIREMENTS:
 6. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
 7. Be specific about the idea but use natural, passionate language
 8. Write from a place of genuine excitement about possibilities, not hype
-9. Each section should build on your central idea with specific details
-10. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
-11. Imagine "What would this look like executed brilliantly 3 years from now?"
+9. Each section MUST connect clearly to actual content from the transcript
+10. CONTEXT RELEVANCE IS CRITICAL: Your idea must directly address something mentioned in the transcript
+11. IMPORTANT: If you cannot find a clear business context in the transcript, simply respond with "NO_BUSINESS_CONTEXT"
 
-Format your output EXACTLY as shown in the example. Include emoji headers.
+Format your output EXACTLY as shown in the template. Include emoji headers.
 
 If you truly can't find ANY hint of a business process or structure, respond ONLY with "NO_BUSINESS_CONTEXT"."""
 
     # --- API Call Configuration ---
     generation_config = {
-        "temperature": 1.0, # Maximum temperature for truly radical responses
+        "temperature": 0.8, # Reduced from 1.0 to balance creativity with contextual relevance
         "max_output_tokens": 500, # Increased token limit for more detailed scenarios
-        "top_p": 0.95, # Higher sampling for more creative outputs
+        "top_p": 0.9, # Slightly reduced from 0.95 to improve relevance
     }
 
     safety_settings = {
