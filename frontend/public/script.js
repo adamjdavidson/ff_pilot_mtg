@@ -416,14 +416,20 @@ function generateSummary(content) {
 function formatContent(content) {
     if (!content) return '';
     
-    // Replace newlines with <br>
-    let formatted = content.replace(/\n/g, '<br>');
+    // Replace newlines with <br> but not double newlines (paragraphs)
+    let formatted = content.replace(/\n(?!\n)/g, '<br>');
     
-    // Make bold text wrapped in ** or __
+    // Replace double newlines with paragraph breaks for better readability
+    formatted = formatted.replace(/\n\n/g, '</p><p>');
+    
+    // Make bold text wrapped in ** or __ 
     formatted = formatted.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
     
     // Make bullet points more visually appealing
     formatted = formatted.replace(/^•\s+(.*)/gm, '<div class="bullet-point">• $1</div>');
+    
+    // Wrap the content in <p> tags for proper spacing
+    formatted = '<p>' + formatted + '</p>';
     
     return formatted;
 }

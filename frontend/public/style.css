@@ -389,50 +389,18 @@ h1, h2, h3, h4, h5, h6 {
 .detail-content {
     font-size: 1rem;
     line-height: 1.6;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    /* Clean, flat design with just a border for visual hierarchy */
-    border-left: 3px solid rgba(0, 0, 0, 0.1);
-    padding-left: 1rem;
-}
-
-/* Style emoji headings in detail content */
-.detail-content strong {
-    font-size: 1.1rem;
-    font-weight: 700;
-    display: block;
-    margin-top: 1.5rem;
+    margin-top: 0.5rem;
     margin-bottom: 0.5rem;
+    /* Remove borders and padding - make it a natural text continuation */
+}
+
+/* Make strong tags (including emoji headers) inline with subtle emphasis */
+.detail-content strong {
+    font-weight: 600;
     color: var(--text-primary);
-}
-
-/* Specific agent stylings kept more subtle */
-.agent-radical-expander .detail-content {
-    border-left-color: var(--color-radical);
-}
-
-.agent-wild-product .detail-content {
-    border-left-color: var(--color-product);
-}
-
-.agent-skeptical .detail-content {
-    border-left-color: var(--color-skeptical);
-}
-
-.agent-debate .detail-content {
-    border-left-color: var(--color-debate);
-}
-
-.agent-one-small-thing .detail-content {
-    border-left-color: var(--color-one-small-thing);
-}
-
-.agent-disruptor .detail-content {
-    border-left-color: var(--color-disruptor);
-}
-
-.agent-error .detail-content {
-    border-left-color: var(--color-error);
+    display: inline;
+    margin: 0;
+    font-size: inherit;
 }
 
 /* Add styles for bullet points in detail content */
