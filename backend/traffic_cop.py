@@ -83,14 +83,20 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
             logger.info(f"--- Explicit trigger detected for custom agent: {agent_name}")
             return agent_name  # Return the name to be matched with dynamic_agent function
     
-    # 1. Check for Explicit Triggers - Disruptor gets checked FIRST for meetings about disruption
-    # Using lower() for case-insensitive matching
-    # Add broader patterns for disruption-related concepts for Disruptor Agent
-    disruption_patterns = DISRUPTOR_TRIGGERS + ["market", "trend", "industry", "threat", "compete", "startup", "innovation", "evolve", "shift"]
-    if any(phrase in transcript_text.lower() for phrase in disruption_patterns):
-        logger.info(f"--- Explicit trigger detected for Disruptor Agent (high priority)")
+    # Define explicit trigger words for Product Agent
+    PRODUCT_AGENT_TRIGGERS = ["product", "customer", "user", "feature", "service", "solution", "market need", "offering"]
+        
+    # 1. Check all agents with similar priority
+    # Check for Explicit Triggers (Product Agent) - Added
+    if any(phrase in transcript_text.lower() for phrase in PRODUCT_AGENT_TRIGGERS):
+        logger.info(f"--- Explicit trigger detected for Product Agent")
+        return "Product Agent" # Return specific name
+        
+    # Check for Explicit Triggers (Disruptor)
+    if any(phrase in transcript_text.lower() for phrase in DISRUPTOR_TRIGGERS):
+        logger.info(f"--- Explicit trigger detected for Disruptor Agent")
         return "Disruptor" # Return specific name
-
+        
     # Continue with other agent checks
     if any(phrase in transcript_text.lower() for phrase in DEBATE_AGENT_TRIGGERS):
         logger.info(f"--- Explicit trigger detected for Debate Agent")
@@ -125,11 +131,11 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
         # Get a count of how many of each agent we should include in our random pool
         # to ensure balanced distribution
         agent_weights = {
-            "Radical Expander": 8,  # Boost Radical Expander
-            "Product Agent": 8,     # Boost Product Agent  
-            "Skeptical Agent": 3,
-            "One Small Thing": 3,
-            "Disruptor": 6  # Increased to ensure more balanced distribution
+            "Radical Expander": 5,  # Reduced from 8 to address overrepresentation
+            "Product Agent": 6,     # Slightly reduced but still higher priority
+            "Skeptical Agent": 4,   # Increased from 3 to improve representation
+            "One Small Thing": 4,   # Increased from 3 to improve representation
+            "Disruptor": 5          # Slightly reduced but still well-represented
         }
         
         # Create a weighted pool of agents
@@ -321,7 +327,7 @@ async def trigger_agent(
     # Combine all known agent functions for lookup using corrected absolute imports
     all_agent_functions = {
         "Radical Expander": run_radical_expander,
-        "Wild Product Agent": run_product_agent,
+        "Product Agent": run_product_agent,  # Changed from "Wild Product Agent" to match LLM_ROUTABLE_AGENTS
         "Debate Agent": run_debate_agent,
         "Skeptical Agent": run_skeptical_agent,
         "One Small Thing": run_one_small_thing_agent,

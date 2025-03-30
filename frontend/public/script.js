@@ -1571,6 +1571,7 @@ function convertAgentClassname(agent) {
     const agentClassMap = {
         'Radical Expander': 'radical-expander',
         'Wild Product Agent': 'wild-product',
+        'Product Agent': 'product',
         'Skeptical Agent': 'skeptical',
         'Debate Agent': 'debate',
         'One Small Thing': 'one-small-thing',

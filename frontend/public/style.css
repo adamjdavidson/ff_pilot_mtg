@@ -504,7 +504,7 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--color-radical);
 }
 
-.agent-wild-product .read-more-btn:hover {
+.agent-wild-product .read-more-btn:hover, .agent-product .read-more-btn:hover {
     background-color: rgba(0, 194, 163, 0.1);
     border-color: var(--color-product);
     color: var(--color-product);
@@ -552,14 +552,14 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--color-radical);
 }
 
-.agent-wild-product {
+.agent-wild-product, .agent-product {
     background-color: rgba(0, 194, 163, 0.08);
     border-left: 5px solid var(--color-product);
 }
-.agent-wild-product .card-header {
+.agent-wild-product .card-header, .agent-product .card-header {
     background-color: rgba(0, 194, 163, 0.12);
 }
-.agent-wild-product .agent-icon {
+.agent-wild-product .agent-icon, .agent-product .agent-icon {
     background-color: var(--color-product);
 }
 
