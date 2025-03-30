@@ -13,24 +13,81 @@ const wsUrl = "wss://backend-272134414140.us-east1.run.app/ws";
 // Sound file paths
 const soundPaths = {
     "Radical Expander": "sound-radical",
-    "Wild Product Agent": "sound-product",
+    "Product Agent": "sound-product",
     "Skeptical Agent": "sound-skeptical",
     "Debate Agent": "sound-debate",
     "One Small Thing": "sound-one-small-thing",
     "Disruptor": "sound-disruptor",
     "error": "sound-error"
+    // Custom agents will use the "error" sound as default
 };
 
 // Agent icons
 const agentIcons = {
     "Radical Expander": "fa-bolt",
-    "Wild Product Agent": "fa-lightbulb",
+    "Product Agent": "fa-lightbulb",
     "Skeptical Agent": "fa-question-circle",
     "Debate Agent": "fa-comments",
     "One Small Thing": "fa-check-circle",
     "Disruptor": "fa-rocket",
     "System": "fa-exclamation-circle"
+    // Custom agents will default to "fa-brain" (assigned in the addInsightCard function)
 };
+
+// Predefined agent data for built-in agents
+const builtInAgents = [
+    {
+        name: "Radical Expander",
+        icon: "fa-bolt",
+        type: "built-in",
+        goal: "Radically expand conventional thinking by pushing ideas beyond their normal boundaries.",
+        triggers: ["expand", "radical", "broader", "thinking", "innovation"],
+        prompt: "Analyze the transcript and provide radical expansions on ideas mentioned, looking for unconventional connections and breakthrough possibilities."
+    },
+    {
+        name: "Product Agent",
+        icon: "fa-lightbulb",
+        type: "built-in",
+        goal: "Generate innovative product ideas based on needs or problems mentioned in conversation.",
+        triggers: ["product", "solution", "feature", "service", "idea"],
+        prompt: "Identify needs or problems in the transcript and generate creative product ideas that could address them in unique ways."
+    },
+    {
+        name: "Skeptical Agent",
+        icon: "fa-question-circle",
+        type: "built-in",
+        goal: "Critically examine ideas for potential flaws, risks, or unintended consequences.",
+        triggers: ["critique", "skeptical", "devil's advocate", "what could go wrong"],
+        prompt: "Analyze the transcript and identify potential problems, risks, or downsides to ideas being discussed."
+    },
+    {
+        name: "Debate Agent",
+        icon: "fa-comments",
+        type: "built-in",
+        goal: "Present multiple perspectives on a topic to facilitate more balanced thinking.",
+        triggers: ["debate", "perspectives", "different views", "conflict"],
+        prompt: "Analyze the transcript for points of disagreement or tension, then present balanced arguments from multiple perspectives."
+    },
+    {
+        name: "One Small Thing",
+        icon: "fa-check-circle",
+        type: "built-in",
+        goal: "Provide practical, actionable next steps that can be implemented immediately.",
+        triggers: ["next steps", "how to start", "first step", "quick win"],
+        prompt: "Analyze the transcript and suggest one small, concrete action that could be taken immediately to make progress."
+    },
+    {
+        name: "Disruptor",
+        icon: "fa-rocket",
+        type: "built-in",
+        goal: "Identify how emerging technologies could disrupt industries or business models mentioned.",
+        triggers: ["disrupt", "industry change", "future", "technology impact"],
+        prompt: "Analyze the transcript for mentions of industries or business practices that could be disrupted by AI, blockchain, or other emerging technologies."
+    }
+];
+
+// Store for custom agents (will be populated during runtime)
+let customAgents = [];
 
 // Store for saved insights
 let savedInsights = JSON.parse(localStorage.getItem('savedInsights') || '[]');
@@ -69,6 +126,331 @@ function setupEventListeners() {
     // Clear saved insights
     if (clearSavedBtn) {
         clearSavedBtn.addEventListener('click', clearSavedInsights);
+    }
+    
+    // Agent Management
+    setupAgentManagement();
+}
+
+// Setup Agent Management UI and Event Handlers
+function setupAgentManagement() {
+    const manageAgentsBtn = document.getElementById('manage-agents-btn');
+    const modal = document.getElementById('manage-agents-modal');
+    const modalCloseBtn = modal.querySelector('.modal-close');
+    const agentList = document.getElementById('agent-list');
+    const newAgentBtn = document.getElementById('new-agent-btn');
+    const editAgentBtn = document.getElementById('edit-agent-btn');
+    const deleteAgentBtn = document.getElementById('delete-agent-btn');
+    const cancelEditBtn = document.querySelector('.cancel-edit-btn');
+    const agentEditForm = document.getElementById('agent-edit-form');
+    
+    // Current selected agent
+    let selectedAgentId = null;
+    let isEditingNewAgent = false;
+    
+    // Open modal
+    if (manageAgentsBtn) {
+        manageAgentsBtn.addEventListener('click', () => {
+            populateAgentList();
+            modal.classList.add('show');
+        });
+    }
+    
+    // Close modal (X button)
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+            resetAgentEditor();
+        });
+    }
+    
+    // Create New Agent button
+    if (newAgentBtn) {
+        newAgentBtn.addEventListener('click', () => {
+            isEditingNewAgent = true;
+            selectedAgentId = null;
+            
+            // Update form title
+            document.getElementById('editor-title').textContent = 'Create New Agent';
+            
+            // Reset form values
+            document.getElementById('edit-agent-name').value = '';
+            document.getElementById('edit-agent-icon').value = 'fa-brain';
+            document.getElementById('edit-agent-goal').value = '';
+            document.getElementById('edit-agent-prompt').value = 'You are {name}, a specialized AI agent focused on: {goal}\n\nAnalyze the following transcript and provide insights related to your specialty.\n\nTRANSCRIPT:\n"{text}"\n\nProvide a detailed analysis and actionable recommendations.';
+            document.getElementById('edit-agent-triggers').value = '';
+            
+            // Show editor, hide details
+            document.getElementById('agent-editor').classList.add('active');
+            document.getElementById('agent-details').classList.add('hidden');
+            
+            // Remove active class from any selected agent in list
+            const activeItems = agentList.querySelectorAll('.agent-list-item.active');
+            activeItems.forEach(item => item.classList.remove('active'));
+        });
+    }
+    
+    // Edit button
+    if (editAgentBtn) {
+        editAgentBtn.addEventListener('click', () => {
+            if (!selectedAgentId) return;
+            
+            const agent = findAgentById(selectedAgentId);
+            if (!agent) return;
+            
+            isEditingNewAgent = false;
+            
+            // Update form title
+            document.getElementById('editor-title').textContent = 'Edit Agent';
+            
+            // Populate form with agent data
+            document.getElementById('edit-agent-name').value = agent.name;
+            document.getElementById('edit-agent-icon').value = agent.icon || 'fa-brain';
+            document.getElementById('edit-agent-goal').value = agent.goal;
+            document.getElementById('edit-agent-prompt').value = agent.prompt || 'You are {name}, a specialized AI agent focused on: {goal}\n\nAnalyze the following transcript and provide insights related to your specialty.\n\nTRANSCRIPT:\n"{text}"\n\nProvide a detailed analysis and actionable recommendations.';
+            document.getElementById('edit-agent-triggers').value = agent.triggers.join(', ');
+            
+            // Show editor, hide details
+            document.getElementById('agent-editor').classList.add('active');
+            document.getElementById('agent-details').classList.add('hidden');
+        });
+    }
+    
+    // Delete button
+    if (deleteAgentBtn) {
+        deleteAgentBtn.addEventListener('click', () => {
+            if (!selectedAgentId) return;
+            
+            const agent = findAgentById(selectedAgentId);
+            if (!agent) return;
+            
+            // Check if it's a built-in agent
+            if (agent.type === 'built-in') {
+                showToast('Cannot delete built-in agents');
+                return;
+            }
+            
+            // Confirm deletion
+            if (confirm(`Are you sure you want to delete the agent "${agent.name}"?`)) {
+                // Remove from customAgents array
+                const index = customAgents.findIndex(a => a.name === agent.name);
+                if (index !== -1) {
+                    customAgents.splice(index, 1);
+                }
+                
+                // Send delete command to server
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const message = {
+                        type: 'delete_agent',
+                        name: agent.name
+                    };
+                    socket.send(JSON.stringify(message));
+                }
+                
+                // Show toast
+                showToast(`Agent "${agent.name}" deleted`);
+                
+                // Reset selected agent
+                selectedAgentId = null;
+                
+                // Hide details view
+                document.getElementById('agent-details').classList.add('hidden');
+                
+                // Refresh agent list
+                populateAgentList();
+            }
+        });
+    }
+    
+    // Cancel Edit button
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+            resetAgentEditor();
+        });
+    }
+    
+    // Submit Edit form
+    if (agentEditForm) {
+        agentEditForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Get form values
+            const agentName = document.getElementById('edit-agent-name').value.trim();
+            const agentIcon = document.getElementById('edit-agent-icon').value;
+            const agentGoal = document.getElementById('edit-agent-goal').value.trim();
+            const agentPrompt = document.getElementById('edit-agent-prompt').value.trim();
+            const triggerKeywords = document.getElementById('edit-agent-triggers').value
+                .split(',')
+                .map(word => word.trim())
+                .filter(word => word.length > 0);
+            
+            // Validate input
+            if (!agentName || !agentGoal || triggerKeywords.length === 0) {
+                showToast('Please fill in all required fields');
+                return;
+            }
+            
+            // Create agent configuration
+            const agentConfig = {
+                name: agentName,
+                icon: agentIcon,
+                type: 'custom',
+                goal: agentGoal,
+                prompt: agentPrompt,
+                triggers: triggerKeywords
+            };
+            
+            if (isEditingNewAgent) {
+                // Create new agent
+                createCustomAgent(agentConfig);
+            } else {
+                // Update existing agent
+                updateCustomAgent(selectedAgentId, agentConfig);
+            }
+            
+            // Reset editor
+            resetAgentEditor();
+            
+            // Refresh agent list
+            populateAgentList();
+        });
+    }
+    
+    // Function to find agent by ID (name for now)
+    function findAgentById(id) {
+        // Check built-in agents
+        const builtInAgent = builtInAgents.find(agent => agent.name === id);
+        if (builtInAgent) return builtInAgent;
+        
+        // Check custom agents
+        const customAgent = customAgents.find(agent => agent.name === id);
+        if (customAgent) return customAgent;
+        
+        return null;
+    }
+    
+    // Function to reset agent editor state
+    function resetAgentEditor() {
+        document.getElementById('agent-editor').classList.remove('active');
+        
+        // If an agent is selected, show its details
+        if (selectedAgentId) {
+            document.getElementById('agent-details').classList.remove('hidden');
+        } else {
+            document.getElementById('agent-details').classList.add('hidden');
+        }
+        
+        // Reset form
+        agentEditForm.reset();
+    }
+    
+    // Function to populate agent list
+    function populateAgentList() {
+        // Clear existing list
+        agentList.innerHTML = '';
+        
+        // Add built-in agents
+        builtInAgents.forEach(agent => {
+            const agentItem = createAgentListItem(agent);
+            agentList.appendChild(agentItem);
+        });
+        
+        // Add custom agents
+        customAgents.forEach(agent => {
+            const agentItem = createAgentListItem(agent);
+            agentList.appendChild(agentItem);
+        });
+        
+        // If a agent was previously selected, re-select it
+        if (selectedAgentId) {
+            const selectedItem = agentList.querySelector(`[data-agent-id="${selectedAgentId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+            }
+        }
+    }
+    
+    // Function to create agent list item
+    function createAgentListItem(agent) {
+        const item = document.createElement('div');
+        item.className = 'agent-list-item';
+        item.dataset.agentId = agent.name;
+        
+        // Add active class if this is the selected agent
+        if (agent.name === selectedAgentId) {
+            item.classList.add('active');
+        }
+        
+        const icon = document.createElement('div');
+        icon.className = 'agent-list-icon';
+        
+        const iconEl = document.createElement('i');
+        iconEl.className = `fas ${agent.icon || 'fa-brain'}`;
+        icon.appendChild(iconEl);
+        
+        const details = document.createElement('div');
+        details.className = 'agent-list-details';
+        
+        const name = document.createElement('div');
+        name.className = 'agent-list-name';
+        name.textContent = agent.name;
+        
+        const type = document.createElement('div');
+        type.className = 'agent-list-type';
+        type.textContent = agent.type || 'custom';
+        
+        details.appendChild(name);
+        details.appendChild(type);
+        
+        item.appendChild(icon);
+        item.appendChild(details);
+        
+        // Add click event
+        item.addEventListener('click', () => {
+            // Update selected agent
+            selectedAgentId = agent.name;
+            
+            // Update active class
+            const activeItems = agentList.querySelectorAll('.agent-list-item.active');
+            activeItems.forEach(activeItem => activeItem.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Hide editor if visible
+            document.getElementById('agent-editor').classList.remove('active');
+            
+            // Update details view
+            document.getElementById('detail-agent-icon').className = `fas ${agent.icon || 'fa-brain'}`;
+            document.getElementById('detail-agent-name').textContent = agent.name;
+            document.getElementById('detail-agent-goal').textContent = agent.goal;
+            
+            // Update trigger tags
+            const triggerTags = document.getElementById('detail-agent-triggers');
+            triggerTags.innerHTML = '';
+            
+            agent.triggers.forEach(trigger => {
+                const tagSpan = document.createElement('span');
+                tagSpan.className = 'trigger-tag';
+                tagSpan.textContent = trigger;
+                triggerTags.appendChild(tagSpan);
+            });
+            
+            // Update prompt template
+            document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'Default prompt template (not specified)';
+            
+            // Show details
+            document.getElementById('agent-details').classList.remove('hidden');
+            
+            // Disable delete button for built-in agents
+            if (agent.type === 'built-in') {
+                deleteAgentBtn.disabled = true;
+                deleteAgentBtn.title = 'Cannot delete built-in agents';
+            } else {
+                deleteAgentBtn.disabled = false;
+                deleteAgentBtn.title = 'Delete this agent';
+            }
+        });
+        
+        return item;
     }
 }
 
@@ -174,7 +556,12 @@ function handleMessage(messageData) {
     else if (messageData.type === "transcript" && messageData.is_final) {
         // Transcript handling can be re-enabled if needed
         return;
-    } 
+    }
+    else if (messageData.type === "system_message") {
+        // Handle system messages (like agent creation confirmation)
+        showToast(messageData.message);
+        return;
+    }
     else {
         console.warn("Unknown message type:", messageData.type);
     }
@@ -187,7 +574,12 @@ function addInsightCard(insightData) {
     
     // Create card elements
     const card = document.createElement('div');
-    card.className = `insight-card agent-${convertAgentClassname(agent)}`;
+    // Check if this is a custom agent (not in our predefined list)
+    const isCustomAgent = !Object.keys(agentIcons).includes(agent);
+    // Apply custom styling for custom agents
+    card.className = isCustomAgent 
+        ? `insight-card agent-custom` 
+        : `insight-card agent-${convertAgentClassname(agent)}`;
     card.dataset.agent = agent;
     
     // Create card header
@@ -201,7 +593,8 @@ function addInsightCard(insightData) {
     const agentIcon = document.createElement('div');
     agentIcon.className = 'agent-icon';
     const iconEl = document.createElement('i');
-    iconEl.className = `fas ${agentIcons[agent] || 'fa-robot'}`;
+    // Use brain icon for custom agents, robot as fallback for any others
+    iconEl.className = `fas ${isCustomAgent ? 'fa-brain' : (agentIcons[agent] || 'fa-robot')}`;
     agentIcon.appendChild(iconEl);
     
     const agentName = document.createElement('div');
@@ -245,8 +638,8 @@ function addInsightCard(insightData) {
     if (cleanContent.startsWith(agentPrefix)) {
         cleanContent = cleanContent.substring(agentPrefix.length).trim();
     }
-    // Remove "Wild Product Idea:" prefix if it exists (special case for Wild Product Agent)
-    if (agent === "Wild Product Agent" && cleanContent.startsWith("Wild Product Idea:")) {
+    // Remove "Wild Product Idea:" prefix if it exists (special case for Product Agent)
+    if (agent === "Product Agent" && cleanContent.startsWith("Wild Product Idea:")) {
         cleanContent = cleanContent.substring("Wild Product Idea:".length).trim();
     }
     
@@ -980,6 +1373,117 @@ function convertAgentClassname(agent) {
     return agentClassMap[agent] || agent.toLowerCase()
         .replace(/\s+/g, '-') // Replace spaces with hyphens
         .replace(/[^a-z0-9-]/g, ''); // Remove any non-alphanumeric characters except hyphens
+}
+
+// Create Custom Agent
+function createCustomAgent(agentConfig) {
+    // Validate connection
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        showToast('Cannot create agent: Not connected to server');
+        return;
+    }
+    
+    // Create message
+    const message = {
+        type: 'create_agent',
+        config: agentConfig
+    };
+    
+    // Send to server
+    socket.send(JSON.stringify(message));
+    
+    // Add to local custom agents array
+    customAgents.push(agentConfig);
+    
+    // Show success message
+    showToast(`Created custom agent: ${agentConfig.name}`);
+    
+    // Add a custom filter button for this agent if it doesn't exist
+    addCustomAgentFilter(agentConfig.name);
+}
+
+// Update Custom Agent
+function updateCustomAgent(oldName, agentConfig) {
+    // Validate connection
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        showToast('Cannot update agent: Not connected to server');
+        return;
+    }
+    
+    // Check if name changed
+    const nameChanged = oldName !== agentConfig.name;
+    
+    // Create message
+    const message = {
+        type: 'update_agent',
+        old_name: oldName,
+        config: agentConfig
+    };
+    
+    // Send to server
+    socket.send(JSON.stringify(message));
+    
+    // Update in local customAgents array
+    const index = customAgents.findIndex(agent => agent.name === oldName);
+    if (index !== -1) {
+        customAgents[index] = agentConfig;
+    }
+    
+    // Show success message
+    showToast(`Updated agent: ${agentConfig.name}`);
+    
+    // If name changed, update filter button or add a new one
+    if (nameChanged) {
+        // Remove old filter button if it exists
+        const oldFilterBtn = Array.from(filterButtons).find(btn => btn.dataset.filter === oldName);
+        if (oldFilterBtn) {
+            oldFilterBtn.remove();
+        }
+        
+        // Add new filter button
+        addCustomAgentFilter(agentConfig.name);
+    }
+}
+
+// Add Custom Agent Filter Button
+function addCustomAgentFilter(agentName) {
+    // Check if filter already exists
+    const existingFilter = Array.from(filterButtons).find(btn => btn.dataset.filter === agentName);
+    if (existingFilter) return;
+    
+    // Get parent container
+    const filterContainer = document.querySelector('.filter-controls');
+    if (!filterContainer) return;
+    
+    // Create new button
+    const newFilterBtn = document.createElement('button');
+    newFilterBtn.className = 'filter-btn';
+    newFilterBtn.dataset.filter = agentName;
+    
+    // Use a shortened name if needed
+    if (agentName.length > 10) {
+        // Get first word or first 8 characters
+        const shortName = agentName.split(' ')[0] || agentName.substring(0, 8);
+        newFilterBtn.textContent = shortName;
+        // Add tooltip with full name
+        newFilterBtn.title = agentName;
+    } else {
+        newFilterBtn.textContent = agentName;
+    }
+    
+    // Add event listener
+    newFilterBtn.addEventListener('click', () => {
+        activeFilter = agentName;
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        newFilterBtn.classList.add('active');
+        filterInsights();
+    });
+    
+    // Add to container
+    filterContainer.appendChild(newFilterBtn);
+    
+    // Update filterButtons NodeList
+    filterButtons = document.querySelectorAll('.filter-btn');
 }
 
 // Initialize the app when the page loads

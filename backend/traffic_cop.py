@@ -18,17 +18,22 @@ try:
     from agents.skeptical_agent import run_skeptical_agent
     from agents.one_small_thing_agent import run_one_small_thing_agent
     from agents.disruptor_agent import run_disruptor_agent
+    from agents.dynamic_agent import run_dynamic_agent  # Import the dynamic agent
     # Import other agents here if/when added
     logger.info("Successfully imported agent functions using absolute paths.")
 except ImportError as e:
     logger.error(f"Failed to import one or more agent functions using absolute paths: {e}")
     # Define dummies or raise error depending on desired behavior
     async def run_radical_expander(*args, **kwargs): logger.error("Radical Expander not loaded"); await args[-1]({"type":"error", "agent": "Radical Expander", "message":"Not loaded"}) # Assume broadcaster is last arg
-    async def run_product_agent(*args, **kwargs): logger.error("Product Agent not loaded"); await args[-1]({"type":"error", "agent": "Wild Product Agent", "message":"Not loaded"})
+    async def run_product_agent(*args, **kwargs): logger.error("Product Agent not loaded"); await args[-1]({"type":"error", "agent": "Product Agent", "message":"Not loaded"})
     async def run_debate_agent(*args, **kwargs): logger.error("Debate Agent not loaded"); await args[-1]({"type":"error", "agent": "Debate Agent", "message":"Not loaded"})
     async def run_skeptical_agent(*args, **kwargs): logger.error("Skeptical Agent not loaded"); await args[-1]({"type":"error", "agent": "Skeptical Agent", "message":"Not loaded"})
     async def run_one_small_thing_agent(*args, **kwargs): logger.error("One Small Thing Agent not loaded"); await args[-1]({"type":"error", "agent": "One Small Thing", "message":"Not loaded"})
     async def run_disruptor_agent(*args, **kwargs): logger.error("Disruptor Agent not loaded"); await args[-1]({"type":"error", "agent": "Disruptor", "message":"Not loaded"})
+    async def run_dynamic_agent(*args, **kwargs): logger.error("Dynamic Agent not loaded"); await args[-1]({"type":"error", "agent": "Custom Agent", "message":"Not loaded"})
+
+# Store custom agents created during runtime (will be lost on restart)
+CUSTOM_AGENTS = []
 
 
 # --- Agent Routing Configuration ---
@@ -65,6 +70,16 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
     """
     logger.info(">>> route_to_traffic_cop: Analyzing transcript for routing...")
 
+    # 0. Check for Custom Agent triggers first (if any exist)
+    for agent in CUSTOM_AGENTS:
+        agent_name = agent.get("name", "Custom Agent")
+        agent_triggers = agent.get("triggers", [])
+        
+        # Check if any of the trigger words appear in the transcript
+        if agent_triggers and any(trigger.lower() in transcript_text.lower() for trigger in agent_triggers):
+            logger.info(f"--- Explicit trigger detected for custom agent: {agent_name}")
+            return agent_name  # Return the name to be matched with dynamic_agent function
+    
     # 1. Check for Explicit Triggers - Disruptor gets checked FIRST for meetings about disruption
     # Using lower() for case-insensitive matching
     # Add broader patterns for disruption-related concepts for Disruptor Agent
@@ -287,32 +302,59 @@ async def trigger_agent(
         # Add mappings for other agents if/when imported
     }
 
-    agent_function = all_agent_functions.get(name)
+    # Check if this is a custom agent
+    is_custom_agent = False
+    custom_agent_config = None
+    for agent in CUSTOM_AGENTS:
+        if agent.get("name") == name:
+            is_custom_agent = True
+            custom_agent_config = agent
+            break
 
-    if agent_function:
+    if is_custom_agent:
+        logger.info(f"--- Triggering custom agent: '{name}'")
         try:
-            if name == "Debate Agent":
-                logger.info(f"--- Passing context buffer (len: {len(context_buffer)}) to {name}")
-                await agent_function(recent_context=context_buffer, model=model, broadcaster=broadcaster)
-            # Check if the agent is one of the content-routable ones expecting 'text'
-            elif name in LLM_ROUTABLE_AGENTS:
-                 logger.info(f"--- Passing current segment (len: {len(current_segment_text)}) to {name}")
-                 await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
-            else:
-                 # Fallback for safety, though ideally all called agents should be categorized
-                 logger.warning(f"Agent '{name}' triggered but not explicitly categorized for context. Passing current segment.")
-                 await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
-
-            logger.info(f"Agent '{name}' execution initiated successfully.")
-
+            # Run the dynamic agent with the custom config
+            await run_dynamic_agent(
+                text=current_segment_text,
+                model=model,
+                broadcaster=broadcaster,
+                agent_config=custom_agent_config
+            )
+            logger.info(f"Custom agent '{name}' execution initiated successfully.")
         except Exception as e:
-            logger.error(f"Error executing agent '{name}': {e}")
+            logger.error(f"Error executing custom agent '{name}': {e}")
             logger.exception("Traceback:")
-            # Don't send error cards to the frontend
-            # If there's a rate limiting error (429), log it specifically
             if "429 Resource exhausted" in str(e):
-                logger.error(f"RATE LIMITING ERROR: API quota exceeded for agent '{name}'. Consider increasing MIN_TRAFFIC_COP_INTERVAL.")
+                logger.error(f"RATE LIMITING ERROR: API quota exceeded for custom agent '{name}'.")
     else:
-        logger.warning(f"Attempted to trigger unknown agent: '{name}'")
-        # Don't send error cards to the frontend
-        logger.error(f"Unknown agent requested: '{name}'")
+        # Handle built-in agents
+        agent_function = all_agent_functions.get(name)
+
+        if agent_function:
+            try:
+                if name == "Debate Agent":
+                    logger.info(f"--- Passing context buffer (len: {len(context_buffer)}) to {name}")
+                    await agent_function(recent_context=context_buffer, model=model, broadcaster=broadcaster)
+                # Check if the agent is one of the content-routable ones expecting 'text'
+                elif name in LLM_ROUTABLE_AGENTS:
+                    logger.info(f"--- Passing current segment (len: {len(current_segment_text)}) to {name}")
+                    await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
+                else:
+                    # Fallback for safety, though ideally all called agents should be categorized
+                    logger.warning(f"Agent '{name}' triggered but not explicitly categorized for context. Passing current segment.")
+                    await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
+
+                logger.info(f"Agent '{name}' execution initiated successfully.")
+
+            except Exception as e:
+                logger.error(f"Error executing agent '{name}': {e}")
+                logger.exception("Traceback:")
+                # Don't send error cards to the frontend
+                # If there's a rate limiting error (429), log it specifically
+                if "429 Resource exhausted" in str(e):
+                    logger.error(f"RATE LIMITING ERROR: API quota exceeded for agent '{name}'. Consider increasing MIN_TRAFFIC_COP_INTERVAL.")
+        else:
+            logger.warning(f"Attempted to trigger unknown agent: '{name}'")
+            # Don't send error cards to the frontend
+            logger.error(f"Unknown agent requested: '{name}'")

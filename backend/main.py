@@ -271,13 +271,156 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # --- Receive Audio Loop ---
         while True:
-            # Should handle text messages too? For now, assume bytes only.
-            audio_data = await websocket.receive_bytes()
-            # Handle potential empty messages if necessary
-            if not audio_data:
-                # logger.debug("Received empty audio data packet.")
-                continue
-            await audio_queue.put(audio_data)
+            # Handle both binary audio data and text messages
+            try:
+                # Try to receive as bytes first (audio data)
+                audio_data = await websocket.receive_bytes()
+                # Handle potential empty messages if necessary
+                if not audio_data:
+                    # logger.debug("Received empty audio data packet.")
+                    continue
+                await audio_queue.put(audio_data)
+            except WebSocketDisconnect:
+                # WebSocket disconnected
+                raise
+            except Exception as e:
+                # This could be a text message - try to receive as text
+                try:
+                    message_data = await websocket.receive_text()
+                    logger.info(f"Received text message: {message_data[:100]}...")
+                    
+                    # Parse the message
+                    try:
+                        message_json = json.loads(message_data)
+                        message_type = message_json.get("type")
+                        
+                        # Handle create_agent message
+                        if message_type == "create_agent":
+                            config = message_json.get("config", {})
+                            agent_name = config.get("name", "Custom Agent")
+                            agent_goal = config.get("goal", "")
+                            agent_prompt = config.get("prompt", "")
+                            agent_icon = config.get("icon", "fa-brain")
+                            agent_triggers = config.get("triggers", [])
+                            
+                            logger.info(f"Creating custom agent: {agent_name}")
+                            
+                            # Add agent to CUSTOM_AGENTS list in traffic_cop
+                            from traffic_cop import CUSTOM_AGENTS
+                            
+                            # Create agent config
+                            agent_config = {
+                                "name": agent_name,
+                                "goal": agent_goal,
+                                "prompt": agent_prompt,
+                                "icon": agent_icon,
+                                "type": "custom",
+                                "triggers": agent_triggers
+                            }
+                            
+                            # Add to global list (in-memory only, will be lost on restart)
+                            CUSTOM_AGENTS.append(agent_config)
+                            
+                            # Send confirmation
+                            await websocket.send_text(json.dumps({
+                                "type": "system_message",
+                                "message": f"Custom agent '{agent_name}' created successfully"
+                            }))
+                            
+                            logger.info(f"Custom agent created: {agent_name} with {len(agent_triggers)} triggers")
+                            
+                        elif message_type == "update_agent":
+                            old_name = message_json.get("old_name", "")
+                            config = message_json.get("config", {})
+                            agent_name = config.get("name", "Custom Agent")
+                            agent_goal = config.get("goal", "")
+                            agent_prompt = config.get("prompt", "")
+                            agent_icon = config.get("icon", "fa-brain")
+                            agent_triggers = config.get("triggers", [])
+                            
+                            logger.info(f"Updating custom agent: {old_name} -> {agent_name}")
+                            
+                            # Add agent to CUSTOM_AGENTS list in traffic_cop
+                            from traffic_cop import CUSTOM_AGENTS
+                            
+                            # Find the agent by name
+                            agent_index = -1
+                            for i, agent in enumerate(CUSTOM_AGENTS):
+                                if agent.get("name") == old_name:
+                                    agent_index = i
+                                    break
+                            
+                            if agent_index >= 0:
+                                # Create updated agent config
+                                agent_config = {
+                                    "name": agent_name,
+                                    "goal": agent_goal,
+                                    "prompt": agent_prompt,
+                                    "icon": agent_icon,
+                                    "type": "custom",
+                                    "triggers": agent_triggers
+                                }
+                                
+                                # Update in the list
+                                CUSTOM_AGENTS[agent_index] = agent_config
+                                
+                                # Send confirmation
+                                await websocket.send_text(json.dumps({
+                                    "type": "system_message",
+                                    "message": f"Custom agent updated: {old_name} -> {agent_name}"
+                                }))
+                                
+                                logger.info(f"Custom agent updated: {old_name} -> {agent_name}")
+                            else:
+                                # Agent not found
+                                await websocket.send_text(json.dumps({
+                                    "type": "system_message",
+                                    "message": f"Error: Agent '{old_name}' not found"
+                                }))
+                                
+                                logger.warning(f"Failed to update agent: {old_name} not found")
+                                
+                        elif message_type == "delete_agent":
+                            agent_name = message_json.get("name", "")
+                            
+                            logger.info(f"Deleting custom agent: {agent_name}")
+                            
+                            # Remove from CUSTOM_AGENTS list in traffic_cop
+                            from traffic_cop import CUSTOM_AGENTS
+                            
+                            # Find and remove the agent by name
+                            agent_found = False
+                            for i, agent in enumerate(CUSTOM_AGENTS):
+                                if agent.get("name") == agent_name:
+                                    CUSTOM_AGENTS.pop(i)
+                                    agent_found = True
+                                    break
+                            
+                            if agent_found:
+                                # Send confirmation
+                                await websocket.send_text(json.dumps({
+                                    "type": "system_message",
+                                    "message": f"Custom agent '{agent_name}' deleted successfully"
+                                }))
+                                
+                                logger.info(f"Custom agent deleted: {agent_name}")
+                            else:
+                                # Agent not found
+                                await websocket.send_text(json.dumps({
+                                    "type": "system_message",
+                                    "message": f"Error: Agent '{agent_name}' not found"
+                                }))
+                                
+                                logger.warning(f"Failed to delete agent: {agent_name} not found")
+                        else:
+                            logger.warning(f"Received unknown message type: {message_type}")
+                    
+                    except json.JSONDecodeError:
+                        logger.warning(f"Received non-JSON text message: {message_data[:100]}...")
+                        
+                except Exception as text_e:
+                    logger.error(f"Error handling message: {text_e}")
+                    # Continue the loop, don't break on message handling errors
 
     except WebSocketDisconnect:
         logger.info(f"Client {websocket.client} disconnected cleanly.")
