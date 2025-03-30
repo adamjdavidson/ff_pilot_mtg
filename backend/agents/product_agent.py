@@ -26,13 +26,11 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
         return
 
     # Customize the standardized prompt for this specific agent
-    specific_content = "wildly new AI-enabled product ideas with market potential, realism assessment, and estimated timeframe"
+    specific_content = "a revolutionary, mind-blowing product concept that makes venture capitalists desperate to invest billions"
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Write a catchy headline for your product idea",
-        summary="Provide a 1-2 sentence summary of your product idea",
-        analysis="Detailed description of your wildly new product/service concept\n\n**Market Potential:** Your estimate of market size/potential\n**Realism:** Your assessment of feasibility\n**Timeframe:** Your estimated timeline for implementation"
+        analysis="🚀 **The Revolutionary Product:** Detailed description of your sci-fi-level product concept\n\n💰 **Billion-Dollar Potential:** How this creates an entirely new market category\n\n⚡ **Technical Moonshot:** The breakthrough technology that makes this possible\n\n🔮 **Future Impact:** How this product changes human behavior forever"
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements

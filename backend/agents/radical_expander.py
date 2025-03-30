@@ -32,13 +32,11 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
         return
 
     # Customize the standardized prompt for this specific agent
-    specific_content = "provocative scenarios for achieving the fundamental goal through completely reimagined organizational structures driven by advanced AI"
+    specific_content = "provocative scenarios for achieving the fundamental goal through completely reimagined organizational structures that would be unrecognizable to today's executives"
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create a provocative headline that challenges conventional thinking",
-        summary="Summarize how AI could fundamentally transform this process",
-        analysis="Describe 1-2 provocative scenarios that illustrate paradigm shifts in how the fundamental goal could be achieved through completely reimagined organizational structures"
+        analysis="🌋 **Current Business Reality:** Briefly describe the conventional approach\n\n🚀 **The Radical Transformation:** Explain the revolutionary organizational structure that would replace it\n\n⚡ **Extinction-Level Advantages:** Describe why this new structure would make traditional organizations extinct\n\n🔮 **Human Impact:** How human roles would be redefined in ways currently unimaginable"
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements

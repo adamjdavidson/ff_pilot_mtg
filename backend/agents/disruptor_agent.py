@@ -32,13 +32,11 @@ async def run_disruptor_agent(text: str, model: GenerativeModel, broadcaster: ca
         return
 
     # Customize the standardized prompt for this specific agent
-    specific_content = "a radical AI-first business model that could completely disrupt and redefine the industry being discussed"
+    specific_content = "a radical AI-first business model that will completely obliterate and replace the existing industry"
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="How This AI Startup Will Revolutionize [Industry]",
-        summary="Describe in one sentence how this AI-first business model will disrupt the industry",
-        analysis="**Industry Identified:** Clearly identify the specific industry or business area from the transcript\n\n**The Disruptive Concept:** Explain your revolutionary AI-powered business model in 2-3 sentences\n\n**Unfair Advantages:**\n• Technical advantage: How advanced AI provides capabilities incumbents can't match\n• Business model innovation: How this approach fundamentally changes the economics\n• Market approach: How this startup captures market share rapidly\n\n**Why Incumbents Will Fail:** Explain why established players cannot adapt quickly enough"
+        analysis="🔥 **Industry Ripe for Disruption:** Identify the specific industry from the transcript\n\n💣 **The Extinction-Level Concept:** Explain how this AI-powered business model makes current approaches obsolete\n\n⚡ **Unfair Advantages:**\n• Technical superpower: The AI capability that makes this unstoppable\n• Economic revolution: How the business model creates 10X better economics\n• Blitzscaling strategy: How this captures 90% market share in under 2 years\n\n☠️ **Incumbent Death Spiral:** Why traditional players will collapse within 24 months"
     )
     
     # Add the transcript to the prompt with stronger context relevance requirements

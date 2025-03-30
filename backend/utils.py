@@ -58,18 +58,45 @@ async def format_agent_response(agent_name: str, content: str, broadcaster: call
 STANDARDIZED_PROMPT_FORMAT = """
 Based on the transcript segment, provide:
 
-1. A concise headline (5-7 words) that clearly describes the core idea
-2. A brief summary (1-2 sentences, max 25 words)
+1. A mind-blowing headline that MUST:
+   - Be a complete, grammatically correct sentence with a strong subject and powerful verb
+   - Convey a REVOLUTIONARY concept that challenges conventional thinking
+   - Sound like a breaking news announcement about a paradigm shift
+   - Use sharp, vivid language that captures attention
+   - Be 5-10 words maximum
+
+2. A crisp summary that MUST:
+   - Expand on the headline with ONE specific, concrete detail
+   - Include a surprising statistic or bold claim about impact
+   - Be 10-15 words maximum
+   - End with a period
+
 3. Detailed analysis that includes {specific_content}
+
+EXAMPLES OF EXCELLENT HEADLINES AND SUMMARIES:
+
+🚀 "AI Twins Replace Middle Management Entirely"
+Companies deploying digital replicas report 300% productivity boost and happier employees.
+
+🔮 "Drone Hives Transform Last-Mile Delivery Forever"
+Self-organizing swarms deliver packages 10x faster while eliminating 95% of urban congestion.
+
+⚡ "Neural Implants Revolutionize Knowledge Work Training"
+Skills downloaded directly to brain stem cut onboarding from months to minutes.
 
 **Format your response like this:**
 
-[Your headline here - IMPORTANT: Replace this with your actual headline text, do NOT include square brackets]
+[Your headline here - IMPORTANT: Make it REVOLUTIONARY and mind-expanding]
 
-[Your summary here - IMPORTANT: Replace this with your actual summary text, do NOT include square brackets]
+[Your summary here - IMPORTANT: Include a SURPRISING detail or statistic]
 
 **Detailed Analysis:**
-[Your detailed analysis here - IMPORTANT: Replace this with your actual analysis text, do NOT include square brackets]
+[Your detailed analysis here - IMPORTANT: Provide the full mind-blowing vision]
 
-CRITICAL: Make sure to remove ALL placeholder text including the square brackets in your final response!
+CRITICAL REQUIREMENTS:
+- Your headline MUST feel like science fiction that's just barely possible
+- Absolutely NO corporate jargon or buzzwords
+- Be concrete, specific, and crystal clear
+- Make sure your idea is truly revolutionary, not an incremental improvement
+- Prioritize ideas that would shock traditional executives
 """
