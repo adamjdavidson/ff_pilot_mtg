@@ -45,17 +45,10 @@
                         <i class="fas fa-microphone-slash"></i>
                         <span>Microphone inactive</span>
                     </div>
-                    <div class="model-selector">
-                        <select id="global-model-selector" title="Select AI Model">
-                            <option value="gemini:gemini-1.5-pro-002">Gemini Pro</option>
-                            <option value="claude:claude-3-7-sonnet-latest">Claude 3.7 Sonnet</option>
-                            <!-- Other options will be populated by JavaScript -->
-                        </select>
+                    <div class="model-info">
+                        <i class="fas fa-robot"></i>
+                        <span>Claude 3.7 Sonnet</span>
                     </div>
-                    <button id="manage-agents-btn" class="manage-agents-btn">
-                        <i class="fas fa-brain"></i>
-                        <span>Manage Agents</span>
-                    </button>
                 </div>
             </header>
 
@@ -90,117 +83,6 @@
     <audio id="sound-one-small-thing" src="sounds/one-small-thing.mp3" preload="auto"></audio>
     <audio id="sound-disruptor" src="sounds/disruptor.mp3" preload="auto"></audio>
     <audio id="sound-error" src="sounds/error.mp3" preload="auto"></audio>
-    
-    <!-- Manage Agents Modal -->
-    <div id="manage-agents-modal" class="modal">
-        <div class="modal-content modal-lg">
-            <div class="modal-header">
-                <h2>Manage AI Agents</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="agent-manager">
-                    <!-- Left sidebar with agent list -->
-                    <div class="agent-list-sidebar">
-                        <div class="agent-list-header">
-                            <h3>Available Agents</h3>
-                            <button id="new-agent-btn" class="new-agent-btn">
-                                <i class="fas fa-plus"></i> New Agent
-                            </button>
-                        </div>
-                        <div class="agent-list" id="agent-list">
-                            <!-- Agent list items will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    
-                    <!-- Right panel with agent details and editor -->
-                    <div class="agent-detail-panel">
-                        <!-- Editor panel (visible when editing an agent) -->
-                        <div id="agent-editor" class="agent-editor">
-                            <h3 id="editor-title">Edit Agent</h3>
-                            <form id="agent-edit-form">
-                                <div class="form-group">
-                                    <label for="edit-agent-name">Agent Name:</label>
-                                    <input type="text" id="edit-agent-name" name="edit-agent-name" placeholder="e.g., Marketing Agent" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-agent-icon">Agent Icon:</label>
-                                    <select id="edit-agent-icon" name="edit-agent-icon">
-                                        <option value="fa-brain">Brain</option>
-                                        <option value="fa-lightbulb">Lightbulb</option>
-                                        <option value="fa-bolt">Lightning</option>
-                                        <option value="fa-rocket">Rocket</option>
-                                        <option value="fa-comments">Comments</option>
-                                        <option value="fa-question-circle">Question</option>
-                                        <option value="fa-check-circle">Checkmark</option>
-                                        <option value="fa-trophy">Trophy</option>
-                                        <option value="fa-chart-line">Chart</option>
-                                        <option value="fa-cogs">Gears</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-agent-model">Preferred LLM:</label>
-                                    <select id="edit-agent-model" name="edit-agent-model">
-                                        <option value="">System Default</option>
-                                        <!-- Model options will be populated by JavaScript -->
-                                    </select>
-                                    <small class="form-help">Choose which AI model this agent should use. System Default will use whatever model is currently active.</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-agent-goal">Agent Goal/Purpose:</label>
-                                    <textarea id="edit-agent-goal" name="edit-agent-goal" placeholder="Describe what this agent specializes in..." required></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-agent-prompt">Agent Prompt Template:</label>
-                                    <textarea id="edit-agent-prompt" name="edit-agent-prompt" placeholder="The prompt template used to guide the agent..." rows="6"></textarea>
-                                    <small class="form-help">Advanced: This defines how the agent responds. Use {goal} to reference the goal and {text} for transcript text.</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-agent-triggers">Trigger Keywords (comma-separated):</label>
-                                    <input type="text" id="edit-agent-triggers" name="edit-agent-triggers" placeholder="e.g., marketing, brand, promotion" required>
-                                    <small class="form-help">These keywords will cause this agent to activate when mentioned in conversation.</small>
-                                </div>
-                                <div class="form-buttons">
-                                    <button type="submit" class="submit-btn">Save Agent</button>
-                                    <button type="button" class="cancel-edit-btn">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <!-- Details panel (visible when viewing an agent) -->
-                        <div id="agent-details" class="agent-details">
-                            <div class="agent-header">
-                                <div class="agent-avatar">
-                                    <i id="detail-agent-icon" class="fas fa-brain"></i>
-                                </div>
-                                <h3 id="detail-agent-name">Agent Name</h3>
-                            </div>
-                            <div class="agent-description">
-                                <h4>Goal</h4>
-                                <p id="detail-agent-goal">Agent goal description will appear here.</p>
-                                
-                                <h4>Trigger Keywords</h4>
-                                <div id="detail-agent-triggers" class="trigger-tags">
-                                    <!-- Trigger keywords will be displayed here -->
-                                </div>
-                                
-                                <h4>Prompt Template</h4>
-                                <pre id="detail-agent-prompt" class="prompt-template">Prompt template will appear here.</pre>
-                            </div>
-                            <div class="agent-action-buttons">
-                                <button id="edit-agent-btn" class="action-btn edit-btn">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button id="delete-agent-btn" class="action-btn delete-btn">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <script src="script.js"></script>
 </body>

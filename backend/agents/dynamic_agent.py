@@ -1,25 +1,17 @@
 # backend/agents/dynamic_agent.py
 import logging
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-import vertexai.generative_models as generative_models
 from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
-import sys
-import os
-
-# Add parent directory to path to import llm_providers
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from llm_providers import llm_client, ModelConfig
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
-async def run_dynamic_agent(text: str, model, broadcaster: callable, agent_config: dict):
+async def run_dynamic_agent(text: str, claude_client, broadcaster: callable, agent_config: dict):
     """
     A flexible agent that can be configured at runtime with custom goals and parameters.
     
     Args:
         text: The transcript text to analyze
-        model: The Gemini model instance
+        claude_client: The Claude client 
         broadcaster: Function to broadcast responses
         agent_config: Dictionary with agent configuration including name, goal, etc.
     """
@@ -29,8 +21,8 @@ async def run_dynamic_agent(text: str, model, broadcaster: callable, agent_confi
     logger.info(f">>> Running dynamic agent: {agent_name}")
     
     # --- Input Validation ---
-    if not model:
-        logger.error(f"[{agent_name}] Failed: Gemini model instance not provided.")
+    if not claude_client:
+        logger.error(f"[{agent_name}] Failed: Claude client not provided.")
         return
     if not broadcaster:
         logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided. Cannot send insights.")
@@ -79,62 +71,18 @@ GUIDELINES:
     full_prompt = full_prompt.replace("{goal}", agent_goal)
     full_prompt = full_prompt.replace("{text}", text)
     
-    # --- API Call Configuration ---
-    generation_config = {
-        "temperature": 0.7,  # Balanced creativity and coherence
-        "max_output_tokens": 500, # Allow space for detailed response
-    }
-    
-    safety_settings = {
-        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    }
-    
     # --- API Call and Response Handling ---
     try:
-        # Use the model parameter for backwards compatibility if it's a GenerativeModel
-        # Otherwise, use the unified llm_client for maximum compatibility
-        logger.info(f"[{agent_name}] Sending request to LLM...")
+        # Log which model is being used
+        logger.info(f"[{agent_name}] Sending request to Claude")
         
-        if isinstance(model, GenerativeModel):
-            # Legacy path - use directly provided Gemini model
-            response = await model.generate_content_async(
-                full_prompt,
-                generation_config=generation_config,
-                safety_settings=safety_settings
-            )
-            
-            # Check safety blocks
-            if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-                logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-                # Don't send error card
-                return
-                
-            generated_text = response.text if response.text else ""
-            
-        else:
-            # Use unified client - preferred path
-            model_config = ModelConfig(
-                provider=llm_client.active_provider,
-                model_name=llm_client.active_model_name,
-                temperature=generation_config.get("temperature", 0.7),
-                max_tokens=generation_config.get("max_output_tokens", 500)
-            )
-            
-            model_response = await llm_client.generate_content(full_prompt, model_config)
-            generated_text = model_response.text
-            
-            # Log the model provider that was used
-            logger.info(f"[{agent_name}] Using {model_response.model_provider} model: {model_response.model_name}")
-            
-            # Check if the response was blocked for safety
-            if model_response.finish_reason == "SAFETY" or model_response.finish_reason == "BLOCKED":
-                logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-                # Don't send error card
-                return
-                
+        # Generate content using the Claude client directly
+        generated_text = claude_client.generate_content(
+            full_prompt,
+            temp=0.7,
+            max_tokens=500
+        )
+        
         # Process the response text
         generated_text = generated_text.strip()
         if not generated_text:
@@ -153,7 +101,7 @@ GUIDELINES:
             await format_agent_response(agent_name, generated_text, broadcaster, "insight")
             
     except Exception as e:
-        logger.error(f"[{agent_name}] Error during Gemini API call or processing: {e}")
+        logger.error(f"[{agent_name}] Error during Claude API call or processing: {e}")
         logger.exception("Traceback:")
         # Don't broadcast errors to frontend
         if "429 Resource exhausted" in str(e):

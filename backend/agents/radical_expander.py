@@ -1,13 +1,11 @@
 # backend/agents/radical_expander.py
 import logging
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-import vertexai.generative_models as generative_models
-from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
+from utils import format_agent_response
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
-async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: callable):
+async def run_radical_expander(text: str, claude_client, broadcaster: callable):
     """
     Analyzes transcript text, identifies the first-principles goal,
     and generates provocative scenarios for achieving that goal via
@@ -17,8 +15,8 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
     logger.info(f">>> Running {agent_name} Agent...")
 
     # --- Input Validation ---
-    if not model:
-        logger.error(f"[{agent_name}] Failed: Gemini model instance not provided.")
+    if not claude_client:
+        logger.error(f"[{agent_name}] Failed: Claude client not provided.")
         return
     if not broadcaster:
         logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided. Cannot send insights.")
@@ -31,15 +29,7 @@ async def run_radical_expander(text: str, model: GenerativeModel, broadcaster: c
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
 
-    # Customize the standardized prompt for this specific agent
-    specific_content = "provocative scenarios for achieving the fundamental goal through completely reimagined organizational structures that would be unrecognizable to today's executives"
-    
-    prompt = STANDARDIZED_PROMPT_FORMAT.format(
-        specific_content=specific_content,
-        analysis="🌋 **Current Business Reality:** Briefly describe the conventional approach\n\n🚀 **The Radical Transformation:** Explain the revolutionary organizational structure that would replace it\n\n⚡ **Extinction-Level Advantages:** Describe why this new structure would make traditional organizations extinct\n\n🔮 **Human Impact:** How human roles would be redefined in ways currently unimaginable"
-    )
-    
-    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
+    # DIRECT PROMPT for Radical Expander
     direct_prompt = f"""You are RADICAL EXPANDER, creating mind-blowing organizational restructuring visions.
 
 TRANSCRIPT:
@@ -82,56 +72,32 @@ Format your output EXACTLY as shown in the example. Include emoji headers.
 
 If you truly can't find ANY hint of a business process or structure, respond ONLY with "NO_BUSINESS_CONTEXT"."""
 
-    # --- API Call Configuration ---
-    generation_config = {
-        "temperature": 1.0, # Maximum temperature for truly radical responses
-        "max_output_tokens": 500, # Increased token limit for more detailed scenarios
-        "top_p": 0.95, # Higher sampling for more creative outputs
-    }
-
-    safety_settings = {
-        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    }
-
     # --- API Call and Response Handling ---
     try:
-        logger.info(f"[{agent_name}] Sending request to Gemini model...")
-        response = await model.generate_content_async(
-            direct_prompt,  # USE THE DIRECT PROMPT INSTEAD OF STANDARDIZED ONE
-            generation_config=generation_config,
-            safety_settings=safety_settings
+        # Log which model is being used
+        logger.info(f"[{agent_name}] Sending request to Claude")
+        
+        # Generate content using the Claude client directly
+        generated_text = claude_client.generate_content(
+            direct_prompt,
+            temp=1.0,
+            max_tokens=500
         )
-        logger.debug(f"[{agent_name}] Raw response received: {response}")
-
-        if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-            logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-            # Don't send error card
+        
+        # Process the generated text
+        if not generated_text or len(generated_text) < 15:
+            logger.warning(f"[{agent_name}] Generated content is too short or empty: '{generated_text}'")
             return
-        elif response.text:
-            generated_text = response.text.strip()
-            if not generated_text or len(generated_text) < 15:
-                logger.warning(f"[{agent_name}] Generated content is too short or empty: '{generated_text}'")
-                # Don't send error card
-                return
-            # Only check for explicit insufficient context marker
-            elif generated_text.lower() == "no_business_context":
-                logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
-                # Don't send any response card when explicitly marked as no context
-                return
-            else:
-                logger.info(f"[{agent_name}] Successfully generated insight.")
-                await format_agent_response(agent_name, generated_text, broadcaster, "insight")
+        # Only check for explicit insufficient context marker
+        elif generated_text.lower() == "no_business_context":
+            logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
+            return
         else:
-            finish_reason = response.candidates[0].finish_reason if response.candidates else 'N/A'
-            logger.warning(f"[{agent_name}] Generation produced no text content. Finish Reason: {finish_reason}")
-            # Don't send error card
-            return
+            logger.info(f"[{agent_name}] Successfully generated insight.")
+            await format_agent_response(agent_name, generated_text, broadcaster, "insight")
 
     except Exception as e:
-        logger.error(f"[{agent_name}] Error during Gemini API call or processing: {e}")
+        logger.error(f"[{agent_name}] Error during Claude API call or processing: {e}")
         logger.exception("Traceback:")
         # Don't broadcast errors to frontend
         if "429 Resource exhausted" in str(e):

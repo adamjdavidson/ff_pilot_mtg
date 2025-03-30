@@ -1,13 +1,8 @@
-# backend/traffic_cop.py (Revised Prompt for Routing)
+# backend/traffic_cop.py (Revised for Claude-only approach)
 import asyncio
 import logging
 import json
 import random
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-import vertexai.generative_models as generative_models
-
-# Import unified LLM client
-from llm_providers import llm_client, ModelConfig, ModelProvider
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
@@ -64,12 +59,15 @@ DISRUPTOR_TRIGGERS = ["disruptor", "disrupt", "disruption", "ai startup", "start
 
 # --- Traffic Cop Core Logic ---
 
-# Note: Removed the type hint fix here as it should be done by changing Python version
-async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
+async def route_to_traffic_cop(transcript_text: str, claude_client):
     """
     Determines which agent to run. Checks for explicit triggers first,
-    then uses the Gemini model for content-based routing for other agents.
+    then uses the Claude client for content-based routing for other agents.
     Returns agent name (str) or None.
+    
+    Args:
+        transcript_text: The transcript segment to analyze
+        claude_client: The Claude client for content-based routing
     """
     logger.info(">>> route_to_traffic_cop: Analyzing transcript for routing...")
 
@@ -112,9 +110,10 @@ async def route_to_traffic_cop(transcript_text: str, model: GenerativeModel):
         logger.info(f"--- Explicit trigger detected for One Small Thing Agent")
         return "One Small Thing" # Return specific name
 
-    # 2. If no explicit trigger, proceed with content-based routing (if model available)
-    if not model:
-        logger.error("Routing failed: Gemini model is not available for content-based routing.")
+    # 2. If no explicit trigger, proceed with content-based routing (if client available)
+    # Check if we have a valid Claude client to use
+    if not claude_client:
+        logger.error("Routing failed: Claude client is not available for content-based routing.")
         return None
 
     llm_agent_names = list(LLM_ROUTABLE_AGENTS.keys())
@@ -238,76 +237,45 @@ Which agent from the list above is the MOST relevant for this specific business 
 """
 
     try:
-        logger.info("Sending content-based routing request to LLM...")
+        # Use the Claude client for routing
+        logger.info(f"Sending content-based routing request to Claude")
         
-        # Check if using legacy Gemini model directly or unified client
-        if isinstance(model, GenerativeModel):
-            # Legacy path - use directly provided Gemini model
-            response = await model.generate_content_async(
-                prompt,
-                generation_config={"temperature": 0.5, "max_output_tokens": 50},
-                safety_settings={
-                    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                }
-            )
-            
-            if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-                logger.warning("Routing decision blocked by safety settings. Defaulting to None.")
-                return "None"
-                
-            if response.text:
-                raw_text = response.text
-            else:
-                logger.warning("Empty response from legacy model")
-                return "None"
-                
-        else:
-            # Use unified client
-            model_config = ModelConfig(
-                provider=llm_client.active_provider,
-                model_name=llm_client.active_model_name,
-                temperature=0.5,
-                max_tokens=50
-            )
-            
-            model_response = await llm_client.generate_content(prompt, model_config)
-            
-            # Log which model was used
-            logger.info(f"Routing using {model_response.model_provider} model: {model_response.model_name}")
-            
-            if model_response.finish_reason == "SAFETY" or model_response.finish_reason == "BLOCKED":
-                logger.warning("Routing decision blocked by safety settings. Defaulting to None.")
-                return "None"
-                
-            raw_text = model_response.text
-            
-        # Process the response regardless of which path was used
+        # Generate content using the Claude client directly
+        raw_text = claude_client.generate_content(
+            prompt,
+            temp=0.5,
+            max_tokens=50
+        )
+        
+        # Log that Claude was used
+        logger.info(f"Routing using Claude model")
+        
+        # Process the response 
         raw_choice = raw_text.strip().replace('"', '').replace("'", '').replace('.', '').replace('`', '')
 
         # Check for exact match first (case-insensitive)
         for agent_name in llm_agent_names:
             if agent_name.lower() == raw_choice.lower():
-                logger.info(f"Routing decision (LLM - Exact): Trigger '{agent_name}'")
+                logger.info(f"Routing decision (Claude - Exact): Trigger '{agent_name}'")
                 return agent_name
 
         # If no exact match, check containment (as fallback) - might be less reliable
         for agent_name in llm_agent_names:
             if agent_name.lower() in raw_choice.lower():
-                logger.info(f"Routing decision (LLM - Contained): Trigger '{agent_name}'")
+                logger.info(f"Routing decision (Claude - Contained): Trigger '{agent_name}'")
                 return agent_name
 
         # Check for "None" variations
         if "none" in raw_choice.lower():
-            logger.info("Routing decision (LLM): No agent needed ('None')")
+            logger.info("Routing decision (Claude): No agent needed ('None')")
             return "None"
 
         # If we reach here, it's an unknown response
-        logger.warning(f"Routing failed: Model returned an unrecognized response: '{raw_choice}'. Defaulting to None.")
+        logger.warning(f"Routing failed: Claude returned an unrecognized response: '{raw_choice}'. Defaulting to None.")
         return "None"
 
     except Exception as e:
-        logger.error(f"Error during content-based routing with Gemini model: {e}")
+        logger.error(f"Error during content-based routing with Claude: {e}")
         logger.exception("Traceback:")
         return None
 
@@ -315,12 +283,19 @@ Which agent from the list above is the MOST relevant for this specific business 
 async def trigger_agent(
     name: str,
     current_segment_text: str,
-    model,  # Can be GenerativeModel or None (when using unified client)
+    claude_client,  # The Claude client
     broadcaster: callable,
     context_buffer: str
 ):
     """
     Triggers the specified agent function, passing the appropriate context.
+    
+    Args:
+        name: The name of the agent to trigger
+        current_segment_text: The current transcript segment
+        claude_client: The Claude client
+        broadcaster: Function to broadcast results
+        context_buffer: Additional context from previous segments
     """
     logger.info(f">>> trigger_agent: Attempting to trigger agent '{name}'")
 
@@ -350,7 +325,7 @@ async def trigger_agent(
             # Run the dynamic agent with the custom config
             await run_dynamic_agent(
                 text=current_segment_text,
-                model=model,
+                claude_client=claude_client,
                 broadcaster=broadcaster,
                 agent_config=custom_agent_config
             )
@@ -368,15 +343,15 @@ async def trigger_agent(
             try:
                 if name == "Debate Agent":
                     logger.info(f"--- Passing context buffer (len: {len(context_buffer)}) to {name}")
-                    await agent_function(recent_context=context_buffer, model=model, broadcaster=broadcaster)
+                    await agent_function(recent_context=context_buffer, claude_client=claude_client, broadcaster=broadcaster)
                 # Check if the agent is one of the content-routable ones expecting 'text'
                 elif name in LLM_ROUTABLE_AGENTS:
                     logger.info(f"--- Passing current segment (len: {len(current_segment_text)}) to {name}")
-                    await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
+                    await agent_function(text=current_segment_text, claude_client=claude_client, broadcaster=broadcaster)
                 else:
                     # Fallback for safety, though ideally all called agents should be categorized
                     logger.warning(f"Agent '{name}' triggered but not explicitly categorized for context. Passing current segment.")
-                    await agent_function(text=current_segment_text, model=model, broadcaster=broadcaster)
+                    await agent_function(text=current_segment_text, claude_client=claude_client, broadcaster=broadcaster)
 
                 logger.info(f"Agent '{name}' execution initiated successfully.")
 

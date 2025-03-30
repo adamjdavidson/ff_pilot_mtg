@@ -1,13 +1,11 @@
 # backend/agents/one_small_thing_agent.py
 import logging
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-import vertexai.generative_models as generative_models
 from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
-async def run_one_small_thing_agent(text: str, model: GenerativeModel, broadcaster: callable):
+async def run_one_small_thing_agent(text: str, claude_client, broadcaster: callable):
     """
     Analyzes transcript text and suggests a single, concrete, 
     immediately implementable next step to begin an AI journey
@@ -17,8 +15,8 @@ async def run_one_small_thing_agent(text: str, model: GenerativeModel, broadcast
     logger.info(f">>> Running {agent_name} Agent...")
 
     # --- Input Validation ---
-    if not model:
-        logger.error(f"[{agent_name}] Failed: Gemini model instance not provided.")
+    if not claude_client:
+        logger.error(f"[{agent_name}] Failed: Claude client not provided.")
         return
     if not broadcaster:
         logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided. Cannot send insights.")
@@ -64,55 +62,34 @@ Focus on suggesting ONE specific step that is:
 
 Be concise and practical. Suggest something that could realistically be implemented by a team with limited AI experience but access to basic AI tools and resources."""
 
-    # --- API Call Configuration ---
-    generation_config = {
-        "temperature": 0.3,
-        "max_output_tokens": 300,
-    }
-
-    safety_settings = {
-        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    }
-
     # --- API Call and Response Handling ---
     try:
-        logger.info(f"[{agent_name}] Sending request to Gemini model...")
-        response = await model.generate_content_async(
+        # Log which model is being used
+        logger.info(f"[{agent_name}] Sending request to Claude")
+        
+        # Generate content using the Claude client directly
+        generated_text = claude_client.generate_content(
             full_prompt,
-            generation_config=generation_config,
-            safety_settings=safety_settings
+            temp=0.3,
+            max_tokens=300
         )
-        logger.debug(f"[{agent_name}] Raw response received: {response}")
-
-        if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-            logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
+        
+        # Process the generated text
+        if not generated_text or len(generated_text.strip()) < 5:
+            logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
             # Don't send error card
             return
-        elif response.text:
-            generated_text = response.text.strip()
-            if not generated_text:
-                logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
-                # Don't send error card
-                return
-            # Only check for explicit insufficient context marker
-            elif generated_text.lower() == "no_business_context":
-                logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
-                # Don't send any response card when explicitly marked as no context
-                return
-            else:
-                logger.info(f"[{agent_name}] Successfully generated next step suggestion.")
-                await format_agent_response(agent_name, generated_text, broadcaster, "insight")
+        # Only check for explicit insufficient context marker
+        elif generated_text.lower() == "no_business_context":
+            logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
+            # Don't send any response card when explicitly marked as no context
+            return
         else:
-            finish_reason = response.candidates[0].finish_reason if response.candidates else 'N/A'
-            logger.warning(f"[{agent_name}] Generation produced no text content. Finish Reason: {finish_reason}")
-            # Don't send error card
-            return
+            logger.info(f"[{agent_name}] Successfully generated next step suggestion.")
+            await format_agent_response(agent_name, generated_text, broadcaster, "insight")
 
     except Exception as e:
-        logger.error(f"[{agent_name}] Error during Gemini API call or processing: {e}")
+        logger.error(f"[{agent_name}] Error during Claude API call or processing: {e}")
         logger.exception("Traceback:")
         # Don't broadcast errors to frontend
         if "429 Resource exhausted" in str(e):

@@ -39,4 +39,5 @@ cd ../frontend
 firebase deploy --only hosting
 
 echo -e "${GREEN}Frontend deployed successfully.${NC}"
-echo -e "${GREEN}Deployment complete! Your AI Meeting Assistant with Claude 3.7 integration is now live.${NC}"
+echo -e "${GREEN}Deployment complete! Your Claude-only AI Meeting Assistant is now live.${NC}"
+echo -e "${YELLOW}The system has been simplified to use Claude 3.7 Sonnet exclusively for all AI functionality.${NC}"

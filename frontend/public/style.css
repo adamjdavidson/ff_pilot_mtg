@@ -191,70 +191,17 @@ h1, h2, h3, h4, h5, h6 {
     100% { opacity: 0.5; }
 }
 
-/* Manage Agents Button */
-.manage-agents-btn {
-    background: linear-gradient(135deg, var(--color-radical), var(--color-product));
-    color: var(--white);
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 0.5rem 1rem;
+
+/* Model Info Badge */
+.model-info {
+    margin-left: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: var(--transition-fast);
-    margin-left: 1.5rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.manage-agents-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.manage-agents-btn i {
-    font-size: 0.9rem;
-}
-
-/* Model Selector */
-.model-selector {
-    margin-left: 1rem;
-    position: relative;
-}
-
-.model-selector select {
     background-color: rgba(255, 255, 255, 0.1);
-    color: var(--white);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-sm);
-    padding: 0.5rem;
+    padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
-    appearance: none;
-    padding-right: 2rem;
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.model-selector select:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-.model-selector select:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
-}
-
-.model-selector::after {
-    content: '▼';
-    position: absolute;
-    right: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--white);
-    font-size: 0.7rem;
-    pointer-events: none;
 }
 
 /* Insights Header */
@@ -1067,17 +1014,6 @@ h1, h2, h3, h4, h5, h6 {
     transition: var(--transition-fast);
 }
 
-/* Custom agent styling */
-.agent-custom {
-    background-color: rgba(113, 128, 150, 0.08);
-    border-left: 5px solid #718096;
-}
-.agent-custom .card-header {
-    background-color: rgba(113, 128, 150, 0.12);
-}
-.agent-custom .agent-icon {
-    background-color: #718096;
-}
 
 /* Circuit Board Background Texture for Body */
 body::before {

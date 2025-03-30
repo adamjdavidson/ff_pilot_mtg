@@ -1,13 +1,11 @@
 # backend/agents/product_agent.py
 import logging
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-import vertexai.generative_models as generative_models
-from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
+from utils import format_agent_response
 
+# Get the logger instance configured in main.py
 logger = logging.getLogger("main")
 
-# Function expects 'text' (current segment), 'model', 'broadcaster'
-async def run_product_agent(text: str, model: GenerativeModel, broadcaster: callable):
+async def run_product_agent(text: str, claude_client, broadcaster: callable):
     """
     Listens for triggers (product mentions, explorations, problems) and invents
     wildly new AI-enabled products/services, providing rough estimates for them.
@@ -15,25 +13,23 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
     """
     agent_name = "Product Agent"
     logger.info(f">>> Running {agent_name} Agent...")
-    if not model: logger.error(f"[{agent_name}] Failed: Gemini model instance not provided."); return
-    if not broadcaster: logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided."); return
+    
+    # --- Input Validation ---
+    if not claude_client: 
+        logger.error(f"[{agent_name}] Failed: Claude client not provided.")
+        return
+    if not broadcaster:
+        logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided.")
+        return
     if not text or len(text.strip()) < 15: # Reduced minimum length requirement
-        logger.warning(f"[{agent_name}] Skipped: Input text too short or insufficient context: '{text[:50]}...'");
+        logger.warning(f"[{agent_name}] Skipped: Input text too short or insufficient context: '{text[:50]}...'")
         try:
             await format_agent_response(agent_name, "Insufficient context to invent a meaningful product concept.", broadcaster, "error")
         except Exception as broadcast_err:
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
 
-    # Customize the standardized prompt for this specific agent
-    specific_content = "a revolutionary, mind-blowing product concept that makes venture capitalists desperate to invest billions"
-    
-    prompt = STANDARDIZED_PROMPT_FORMAT.format(
-        specific_content=specific_content,
-        analysis="🚀 **The Revolutionary Product:** Detailed description of your sci-fi-level product concept\n\n💰 **Billion-Dollar Potential:** How this creates an entirely new market category\n\n⚡ **Technical Moonshot:** The breakthrough technology that makes this possible\n\n🔮 **Future Impact:** How this product changes human behavior forever"
-    )
-    
-    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
+    # Direct prompt with specific formatting requirements
     direct_prompt = f"""You are WILD PRODUCT AGENT, inventing mind-blowing, sci-fi level product ideas.
 
 TRANSCRIPT:
@@ -75,49 +71,27 @@ Format your output EXACTLY as shown in the example. Include emoji headers.
 If you truly can't find ANY hint of a domain or problem to solve, respond ONLY with "NO_BUSINESS_CONTEXT"."""
     
     try:
-        generation_config={
-            "temperature": 1.0, # Maximum temperature for truly wild product concepts
-            "max_output_tokens": 600, # Increased token limit for detailed product concepts
-            "top_p": 0.95, # Higher sampling for more creative outputs
-        }
-        safety_settings={
-            generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        }
+        # Log which model is being used
+        logger.info(f"[{agent_name}] Sending request to Claude")
         
-        logger.info(f"[{agent_name}] Sending request to Gemini model...")
-        response = await model.generate_content_async(
-            direct_prompt, # USE THE DIRECT PROMPT INSTEAD
-            generation_config=generation_config,
-            safety_settings=safety_settings
+        # Generate content using the Claude client directly
+        generated_text = claude_client.generate_content(
+            direct_prompt,
+            temp=1.0,
+            max_tokens=600
         )
-        logger.debug(f"[{agent_name}] Raw response: {response}")
-
-        if response.candidates and response.candidates[0].finish_reason == FinishReason.SAFETY:
-            logger.warning(f"[{agent_name}] Generation blocked due to safety settings.")
-            # Don't send error card
+        
+        # Process the generated text
+        if not generated_text:
+            logger.warning(f"[{agent_name}] Generation produced empty text content.")
             return
-        elif response.text:
-            generated_text = response.text.strip()
-            if not generated_text:
-                logger.warning(f"[{agent_name}] Generation produced empty text content after stripping.")
-                # Don't send error card
-                return
-            # Only check for explicit insufficient context marker
-            elif generated_text.lower() == "no_business_context":
-                logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
-                # Don't send any response card when explicitly marked as no context
-                return
-            else:
-                logger.info(f"[{agent_name}] Successfully generated product idea.")
-                await format_agent_response(agent_name, generated_text, broadcaster, "insight")
+        # Only check for explicit insufficient context marker
+        elif generated_text.lower() == "no_business_context":
+            logger.info(f"[{agent_name}] Explicit no context marker detected, not sending card.")
+            return
         else:
-            finish_reason = response.candidates[0].finish_reason if response.candidates else 'N/A'
-            logger.warning(f"[{agent_name}] Generation produced no text content. Finish Reason: {finish_reason}")
-            # Don't send error card
-            return
+            logger.info(f"[{agent_name}] Successfully generated product idea.")
+            await format_agent_response(agent_name, generated_text, broadcaster, "insight")
 
     except Exception as e:
         logger.error(f"[{agent_name}] Error during generation or broadcasting: {e}")
