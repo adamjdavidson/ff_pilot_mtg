@@ -1,6 +1,6 @@
 # backend/agents/product_agent.py
 import logging
-from utils import format_agent_response
+from utils import format_agent_response, STANDARDIZED_PROMPT_FORMAT
 
 # Get the logger instance configured in main.py
 logger = logging.getLogger("main")
