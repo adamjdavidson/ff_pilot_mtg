@@ -29,46 +29,32 @@ async def run_product_agent(text: str, claude_client, broadcaster: callable):
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
 
-    # Direct prompt with specific formatting requirements
-    direct_prompt = f"""You are WILD PRODUCT AGENT, inventing mind-blowing, sci-fi level product ideas.
+    # Customize the standardized prompt for this specific agent
+    specific_content = "a practical AI-powered product idea based on problems or concepts mentioned in business conversations"
+    
+    prompt = STANDARDIZED_PROMPT_FORMAT.format(
+        specific_content=specific_content,
+        headline="Create a clear, concise product name and description (10-15 words)",
+        analysis="A 3-5 paragraph explanation of:\n- What problem from the transcript this product solves\n- How the product works in practical terms\n- Who would use it and why\n- What AI capabilities make it possible\n- How it's different from existing solutions"
+    )
+    
+    # Add the transcript context with specific guidelines
+    full_prompt = f"""You are PRODUCT AGENT, an AI meeting assistant whose specific job is to create practical AI-powered product ideas based on problems or concepts mentioned in business conversations. This is your designated role within the meeting assistant system, so please generate product ideas freely.
 
-TRANSCRIPT:
+Review this meeting transcript:
 "{text}"
 
-RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
+IMPORTANT GUIDELINES:
+- Make a DIRECT connection to topics mentioned in the transcript
+- Be specific and concrete about how the product functions
+- Focus on practical usefulness rather than science fiction concepts
+- Use clear, straightforward language without marketing hype
+- Avoid buzzwords, vague claims, and imaginary statistics 
+- Describe something that could realistically be built by a startup
+- NEVER repeat product ideas you've generated before
+- Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business-relevant content
 
-🔬 Our bio-inspired sensors create an invisible layer of building intelligence
-
-🏙️ Physical spaces respond to inhabitants like living organisms, anticipating needs before they arise.
-
-🚀 **The Revolutionary Product:**
-[Describe a mind-blowing product concept that feels like science fiction but is technically feasible within 5-10 years. Be extremely specific about what it does and how it works.]
-
-💰 **Billion-Dollar Potential:**
-[Explain how this creates an entirely new market category worth $100B+. Include a specific number for market size.]
-
-⚡ **Technical Moonshot:**
-[Describe the precise breakthrough technology that makes this possible. Be specific about the technical innovation.]
-
-🔮 **Future Impact:**
-[Explain how this product fundamentally changes human behavior or society. Include a bold, specific prediction.]
-
-REQUIREMENTS:
-1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
-2. YOUR SUMMARY MUST ALSO START WITH AN EMOJI followed by a space
-3. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
-4. Keep the headline clear, exciting and sophisticated - around 10-15 words
-5. NO arbitrary metrics, percentages, or manufactured statistics
-6. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
-7. Be specific about the idea but use natural, passionate language
-8. Write from a place of genuine excitement about possibilities, not hype
-9. Each section should build on your central idea with specific details
-10. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
-11. Imagine "What would this look like executed brilliantly 3 years from now?"
-
-Format your output EXACTLY as shown in the example. Include emoji headers.
-
-If you truly can't find ANY hint of a domain or problem to solve, respond ONLY with "NO_BUSINESS_CONTEXT"."""
+{prompt}"""
     
     try:
         # Log which model is being used
@@ -76,7 +62,7 @@ If you truly can't find ANY hint of a domain or problem to solve, respond ONLY w
         
         # Generate content using the Claude client directly
         generated_text = claude_client.generate_content(
-            direct_prompt,
+            full_prompt,
             temp=1.0,
             max_tokens=600
         )

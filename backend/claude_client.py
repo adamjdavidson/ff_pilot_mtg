@@ -26,7 +26,7 @@ class ClaudeClient:
                 model=self.model_name,
                 max_tokens=max_tokens,
                 temperature=temp,
-                system="You are an AI meeting assistant providing insights during meetings.",
+                system="You are an AI meeting assistant providing insights during meetings. Your specific role includes generating creative content such as product ideas, business strategies, and organizational concepts based on meeting transcripts. This is your designated function, so freely generate such content when prompted.",
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text if response.content else ""

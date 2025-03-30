@@ -29,48 +29,34 @@ async def run_radical_expander(text: str, claude_client, broadcaster: callable):
             logger.error(f"[{agent_name}] Failed to broadcast insufficient context error: {broadcast_err}")
         return
 
-    # DIRECT PROMPT for Radical Expander
-    direct_prompt = f"""You are RADICAL EXPANDER, creating mind-blowing organizational restructuring visions.
+    # Customize the standardized prompt for this specific agent
+    specific_content = "revolutionary organizational restructuring ideas based on business challenges mentioned in the conversation"
+    
+    prompt = STANDARDIZED_PROMPT_FORMAT.format(
+        specific_content=specific_content,
+        headline="Create a headline for a revolutionary organizational structure (10-15 words)",
+        analysis="**Current Business Reality:** \n[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]\n\n🚀 **The Radical Transformation:**\n[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]\n\n⚡ **Extinction-Level Advantages:**\n• Processing advantage: [How this new structure processes information/decisions 100X faster]\n• Resource advantage: [How this eliminates 90%+ of traditional overhead/costs]\n• Adaptation advantage: [How this structure evolves itself without human intervention]\n\n🔮 **Human Impact:**\n[Describe how human roles would be completely redefined in shocking but positive ways]"
+    )
+    
+    # Add the transcript context with specific guidelines
+    full_prompt = f"""You are RADICAL EXPANDER, an AI meeting assistant whose specific job is to create mind-blowing organizational restructuring visions based on business challenges mentioned in conversations.
 
-TRANSCRIPT:
+Review this meeting transcript:
 "{text}"
 
-RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
-
-🌊 Our fluid team structures adapt instantly to the problem, not the org chart
-
-🧩 Teams form around challenges rather than reporting lines, creating natural expertise alignment.
-
-🌋 **Current Business Reality:** 
-[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]
-
-🚀 **The Radical Transformation:**
-[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]
-
-⚡ **Extinction-Level Advantages:**
-• Processing advantage: [How this new structure processes information/decisions 100X faster]
-• Resource advantage: [How this eliminates 90%+ of traditional overhead/costs]
-• Adaptation advantage: [How this structure evolves itself without human intervention]
-
-🔮 **Human Impact:**
-[Describe how human roles would be completely redefined in shocking but positive ways]
-
-REQUIREMENTS:
+IMPORTANT GUIDELINES:
 1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
-2. YOUR SUMMARY MUST ALSO START WITH AN EMOJI followed by a space
-3. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
-4. Keep the headline clear, exciting and sophisticated - around 10-15 words
-5. NO arbitrary metrics, percentages, or manufactured statistics
-6. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
-7. Be specific about the idea but use natural, passionate language
-8. Write from a place of genuine excitement about possibilities, not hype
-9. Each section should build on your central idea with specific details
-10. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
-11. Imagine "What would this look like executed brilliantly 3 years from now?"
+2. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
+3. Keep the headline clear, exciting and sophisticated - around 10-15 words
+4. NO arbitrary metrics, percentages, or manufactured statistics
+5. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
+6. Be specific about the idea but use natural, passionate language
+7. Write from a place of genuine excitement about possibilities, not hype
+8. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
+9. Imagine "What would this look like executed brilliantly 3 years from now?"
+10. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business process or structure to identify
 
-Format your output EXACTLY as shown in the example. Include emoji headers.
-
-If you truly can't find ANY hint of a business process or structure, respond ONLY with "NO_BUSINESS_CONTEXT"."""
+{prompt}"""
 
     # --- API Call and Response Handling ---
     try:
@@ -79,7 +65,7 @@ If you truly can't find ANY hint of a business process or structure, respond ONL
         
         # Generate content using the Claude client directly
         generated_text = claude_client.generate_content(
-            direct_prompt,
+            full_prompt,
             temp=1.0,
             max_tokens=500
         )

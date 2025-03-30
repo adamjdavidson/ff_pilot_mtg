@@ -37,32 +37,13 @@ async def run_disruptor_agent(text: str, claude_client, broadcaster: callable):
         analysis="🔥 **Industry Ripe for Disruption:** Identify the specific industry from the transcript\n\n💣 **The Extinction-Level Concept:** Explain how this AI-powered business model makes current approaches obsolete\n\n⚡ **Unfair Advantages:**\n• Technical superpower: The AI capability that makes this unstoppable\n• Economic revolution: How the business model creates 10X better economics\n• Blitzscaling strategy: How this captures 90% market share in under 2 years\n\n☠️ **Incumbent Death Spiral:** Why traditional players will collapse within 24 months"
     )
     
-    # COMPLETELY OVERRIDE THE STANDARDIZED PROMPT - going directly to what we want
-    direct_prompt = f"""You are DISRUPTOR, generating revolutionary AI business ideas.
+    # Add the transcript to the prompt with stronger context relevance requirements
+    full_prompt = f"""You are DISRUPTOR, an AI meeting assistant whose specific job is to generate revolutionary AI business ideas based on industries mentioned in conversations.
 
-TRANSCRIPT:
+Review this meeting transcript:
 "{text}"
 
-RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
-
-🚀 Our real-time market signals transform reactive businesses into predictive ones
-
-Companies gain foresight where competitors only have hindsight.
-
-🔥 **Industry Targeted:** [Identify specific industry from transcript]
-
-💣 **The Extinction-Level Concept:**
-[Explain a revolutionary AI business model that completely replaces current approaches. Be extremely specific and technical.]
-
-⚡ **Unfair Advantages:**
-• Technical superpower: [The specific AI capability that makes this unstoppable]
-• Economic revolution: [How this creates 10X better economics]
-• Blitzscaling strategy: [How this captures 90% market share in under 2 years]
-
-☠️ **Incumbent Death Spiral:**
-[Explain why traditional players will collapse within 24 months - be specific about their vulnerabilities]
-
-REQUIREMENTS:
+IMPORTANT GUIDELINES:
 1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
 2. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
 3. Keep the headline clear, exciting and sophisticated - around 10-15 words
@@ -73,10 +54,9 @@ REQUIREMENTS:
 8. Each section should build on your central idea with specific details
 9. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
 10. Imagine "What would this look like executed brilliantly 3 years from now?"
+11. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business context
 
-Format your output EXACTLY as shown in the example. Include emoji headers.
-
-If you truly can't find ANY business context, respond ONLY with "NO_BUSINESS_CONTEXT"."""
+{prompt}"""
 
     # --- API Call and Response Handling ---
     try:
@@ -85,7 +65,7 @@ If you truly can't find ANY business context, respond ONLY with "NO_BUSINESS_CON
         
         # Generate content using the Claude client directly
         generated_text = claude_client.generate_content(
-            direct_prompt,  # USE THE DIRECT PROMPT INSTEAD OF STANDARDIZED ONE
+            full_prompt,
             temp=0.9,
             max_tokens=600
         )
