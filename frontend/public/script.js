@@ -345,7 +345,24 @@ function setupAgentManagement() {
             document.getElementById('edit-agent-name').value = agent.name;
             document.getElementById('edit-agent-icon').value = agent.icon || 'fa-brain';
             document.getElementById('edit-agent-goal').value = agent.goal;
-            document.getElementById('edit-agent-prompt').value = agent.prompt || 'You are {name}, a specialized AI agent focused on: {goal}\n\nAnalyze the following transcript and provide insights related to your specialty.\n\nTRANSCRIPT:\n"{text}"\n\nProvide a detailed analysis and actionable recommendations.';
+            
+            // For built-in agents, request the latest prompt if we don't have it
+            if (agent.type === 'built-in' && !agent.prompt) {
+                document.getElementById('edit-agent-prompt').value = 'Loading prompt from source...';
+                
+                // Request the actual prompt from the backend
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const message = {
+                        type: 'get_agent_prompt',
+                        agent_name: agent.name
+                    };
+                    socket.send(JSON.stringify(message));
+                }
+            } else {
+                // Use the prompt from the agent object
+                document.getElementById('edit-agent-prompt').value = agent.prompt || 'You are {name}, a specialized AI agent focused on: {goal}\n\nAnalyze the following transcript and provide insights related to your specialty.\n\nTRANSCRIPT:\n"{text}"\n\nProvide a detailed analysis and actionable recommendations.';
+            }
+            
             document.getElementById('edit-agent-triggers').value = agent.triggers.join(', ');
             
             // Set model preference if specified
@@ -356,6 +373,24 @@ function setupAgentManagement() {
                 } else {
                     modelSelector.value = ''; // System default
                 }
+            }
+            
+            // For built-in agents, only allow editing the prompt and model
+            if (agent.type === 'built-in') {
+                // Disable name, icon, and triggers fields
+                document.getElementById('edit-agent-name').disabled = true;
+                document.getElementById('edit-agent-icon').disabled = true;
+                document.getElementById('edit-agent-goal').disabled = true;
+                document.getElementById('edit-agent-triggers').disabled = true;
+                
+                // Change form title to indicate we're only editing the prompt
+                document.getElementById('editor-title').textContent = `Edit Prompt: ${agent.name}`;
+            } else {
+                // For custom agents, enable all fields
+                document.getElementById('edit-agent-name').disabled = false;
+                document.getElementById('edit-agent-icon').disabled = false;
+                document.getElementById('edit-agent-goal').disabled = false;
+                document.getElementById('edit-agent-triggers').disabled = false;
             }
             
             // Show editor, hide details
@@ -458,8 +493,35 @@ function setupAgentManagement() {
                 // Create new agent
                 createCustomAgent(agentConfig);
             } else {
-                // Update existing agent
-                updateCustomAgent(selectedAgentId, agentConfig);
+                // Check if this is a built-in agent or custom agent
+                const agent = findAgentById(selectedAgentId);
+                if (agent && agent.type === 'built-in') {
+                    // For built-in agents, we only update the prompt in the backend file
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        const message = {
+                            type: 'update_agent_prompt',
+                            agent_name: agent.name,
+                            prompt: agentConfig.prompt
+                        };
+                        socket.send(JSON.stringify(message));
+                        
+                        // Update in our local data too
+                        for (let i = 0; i < builtInAgents.length; i++) {
+                            if (builtInAgents[i].name === agent.name) {
+                                builtInAgents[i].prompt = agentConfig.prompt;
+                                break;
+                            }
+                        }
+                        
+                        // Show a toast notification
+                        showToast(`Updating prompt for ${agent.name}...`);
+                    } else {
+                        showToast("Cannot update built-in agent: WebSocket not connected");
+                    }
+                } else {
+                    // Update custom agent
+                    updateCustomAgent(selectedAgentId, agentConfig);
+                }
             }
             
             // Reset editor
@@ -615,17 +677,39 @@ function setupAgentManagement() {
                 }
             }
             
-            // Update prompt template
-            document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'Default prompt template (not specified)';
+            // Update prompt template - for built-in agents, fetch from backend
+            if (agent.type === 'built-in') {
+                document.getElementById('detail-agent-prompt').textContent = 'Loading prompt from source...';
+                
+                // Request the actual prompt from the backend
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const message = {
+                        type: 'get_agent_prompt',
+                        agent_name: agent.name
+                    };
+                    socket.send(JSON.stringify(message));
+                }
+            } else {
+                // For custom agents, use the prompt from the agent object
+                document.getElementById('detail-agent-prompt').textContent = agent.prompt || 'Default prompt template (not specified)';
+            }
             
             // Show details
             document.getElementById('agent-details').classList.remove('hidden');
             
-            // Disable delete button for built-in agents
+            // Handle button states for built-in agents
             if (agent.type === 'built-in') {
+                // Allow editing but not deleting built-in agents
+                editAgentBtn.disabled = false;
+                editAgentBtn.title = 'Edit agent prompt';
+                
                 deleteAgentBtn.disabled = true;
                 deleteAgentBtn.title = 'Cannot delete built-in agents';
             } else {
+                // For custom agents, allow both edit and delete
+                editAgentBtn.disabled = false;
+                editAgentBtn.title = 'Edit agent';
+                
                 deleteAgentBtn.disabled = false;
                 deleteAgentBtn.title = 'Delete this agent';
             }
@@ -768,6 +852,37 @@ function handleMessage(messageData) {
             
             console.log(`Active model set to: ${activeModelProvider}:${activeModelName}`);
         }
+        return;
+    }
+    else if (messageData.type === "agent_prompt") {
+        // Handle agent prompt data
+        const agentName = messageData.agent_name;
+        const prompt = messageData.prompt;
+        
+        console.log(`Received prompt for agent: ${agentName}`);
+        
+        // Update the prompt display if this is the currently selected agent
+        if (selectedAgentId === agentName) {
+            const promptElement = document.getElementById('detail-agent-prompt');
+            if (promptElement) {
+                promptElement.textContent = prompt || 'No prompt found in source file';
+            }
+            
+            // Also update the edit form if it's open for this agent
+            if (document.getElementById('agent-editor').classList.contains('active') && 
+                document.getElementById('editor-title').textContent === 'Edit Agent') {
+                document.getElementById('edit-agent-prompt').value = prompt || '';
+            }
+        }
+        
+        // Store the prompt in the built-in agent object for future reference
+        for (let i = 0; i < builtInAgents.length; i++) {
+            if (builtInAgents[i].name === agentName) {
+                builtInAgents[i].prompt = prompt;
+                break;
+            }
+        }
+        
         return;
     }
     else {

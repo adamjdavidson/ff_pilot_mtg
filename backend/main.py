@@ -506,6 +506,150 @@ async def websocket_endpoint(websocket: WebSocket):
                                         "type": "system_message",
                                         "message": f"Unknown model provider: {model_provider}"
                                     }))
+                            
+                            # Handle get_agent_prompt message to retrieve prompt from agent file
+                            elif message_type == "get_agent_prompt":
+                                agent_name = message_json.get("agent_name", "")
+                                if not agent_name:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name is required"
+                                    }))
+                                    continue
+                                
+                                # Map agent names to their file names
+                                agent_files = {
+                                    "Radical Expander": "radical_expander.py",
+                                    "Product Agent": "product_agent.py",
+                                    "Debate Agent": "debate_agent.py", 
+                                    "Skeptical Agent": "skeptical_agent.py",
+                                    "One Small Thing": "one_small_thing_agent.py",
+                                    "Disruptor": "disruptor_agent.py"
+                                }
+                                
+                                if agent_name in agent_files:
+                                    try:
+                                        # Get the file content
+                                        file_path = os.path.join(os.path.dirname(__file__), "agents", agent_files[agent_name])
+                                        with open(file_path, "r") as f:
+                                            content = f.read()
+                                        
+                                        # Extract the prompt from the file
+                                        # This is a simple extraction method and might need to be adjusted
+                                        # for more complex files
+                                        prompt = ""
+                                        if "direct_prompt =" in content:
+                                            # Extract content between triple quotes after direct_prompt =
+                                            start_idx = content.find("direct_prompt = f\"\"\"", 0)
+                                            if start_idx > 0:
+                                                start_idx += len("direct_prompt = f\"\"\"")
+                                                end_idx = content.find("\"\"\"", start_idx)
+                                                if end_idx > start_idx:
+                                                    prompt = content[start_idx:end_idx]
+                                            
+                                        # If not found with direct_prompt, try other patterns
+                                        if not prompt and "prompt =" in content:
+                                            start_idx = content.find("prompt = f\"\"\"", 0)
+                                            if start_idx > 0:
+                                                start_idx += len("prompt = f\"\"\"")
+                                                end_idx = content.find("\"\"\"", start_idx)
+                                                if end_idx > start_idx:
+                                                    prompt = content[start_idx:end_idx]
+                                                    
+                                        # Send the prompt back to the client
+                                        await websocket.send_text(json.dumps({
+                                            "type": "agent_prompt",
+                                            "agent_name": agent_name,
+                                            "prompt": prompt.strip()
+                                        }))
+                                        logger.info(f"Sent prompt for agent: {agent_name}")
+                                    except Exception as e:
+                                        logger.error(f"Error retrieving prompt for agent {agent_name}: {e}")
+                                        await websocket.send_text(json.dumps({
+                                            "type": "system_message",
+                                            "message": f"Error retrieving prompt for agent {agent_name}: {str(e)}"
+                                        }))
+                                else:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": f"Agent not found or is a custom agent: {agent_name}"
+                                    }))
+                            
+                            # Handle update_agent_prompt message
+                            elif message_type == "update_agent_prompt":
+                                agent_name = message_json.get("agent_name", "")
+                                new_prompt = message_json.get("prompt", "")
+                                
+                                if not agent_name or not new_prompt:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": "Error: Agent name and prompt are required"
+                                    }))
+                                    continue
+                                
+                                # Map agent names to their file names
+                                agent_files = {
+                                    "Radical Expander": "radical_expander.py",
+                                    "Product Agent": "product_agent.py",
+                                    "Debate Agent": "debate_agent.py", 
+                                    "Skeptical Agent": "skeptical_agent.py",
+                                    "One Small Thing": "one_small_thing_agent.py",
+                                    "Disruptor": "disruptor_agent.py"
+                                }
+                                
+                                if agent_name in agent_files:
+                                    try:
+                                        # Get the file content
+                                        file_path = os.path.join(os.path.dirname(__file__), "agents", agent_files[agent_name])
+                                        with open(file_path, "r") as f:
+                                            content = f.read()
+                                        
+                                        # Replace the prompt in the file
+                                        new_content = ""
+                                        if "direct_prompt = f\"\"\"" in content:
+                                            # Replace content between triple quotes after direct_prompt =
+                                            start_idx = content.find("direct_prompt = f\"\"\"", 0)
+                                            if start_idx > 0:
+                                                start_idx += len("direct_prompt = f\"\"\"")
+                                                end_idx = content.find("\"\"\"", start_idx)
+                                                if end_idx > start_idx:
+                                                    new_content = content[:start_idx] + new_prompt + content[end_idx:]
+                                        
+                                        # If not found with direct_prompt, try with prompt =
+                                        if not new_content and "prompt = f\"\"\"" in content:
+                                            start_idx = content.find("prompt = f\"\"\"", 0)
+                                            if start_idx > 0:
+                                                start_idx += len("prompt = f\"\"\"")
+                                                end_idx = content.find("\"\"\"", start_idx)
+                                                if end_idx > start_idx:
+                                                    new_content = content[:start_idx] + new_prompt + content[end_idx:]
+                                        
+                                        # If we successfully made a replacement, write it back
+                                        if new_content:
+                                            with open(file_path, "w") as f:
+                                                f.write(new_content)
+                                            
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": f"Successfully updated prompt for {agent_name}"
+                                            }))
+                                            logger.info(f"Updated prompt for agent: {agent_name}")
+                                        else:
+                                            await websocket.send_text(json.dumps({
+                                                "type": "system_message",
+                                                "message": f"Could not find prompt section in file for {agent_name}"
+                                            }))
+                                    except Exception as e:
+                                        logger.error(f"Error updating prompt for agent {agent_name}: {e}")
+                                        await websocket.send_text(json.dumps({
+                                            "type": "system_message",
+                                            "message": f"Error updating prompt for agent {agent_name}: {str(e)}"
+                                        }))
+                                else:
+                                    await websocket.send_text(json.dumps({
+                                        "type": "system_message",
+                                        "message": f"Agent not found or is a custom agent: {agent_name}"
+                                    }))
                             else:
                                 logger.warning(f"Received unknown message type: {message_type}")
                     
