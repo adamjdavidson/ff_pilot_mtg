@@ -25,7 +25,7 @@ LOCATION = "us-east1"
 SPEECH_LANGUAGE_CODE = "en-US"
 SPEECH_SAMPLE_RATE_HERTZ = 16000
 GEMINI_MODEL_NAME = "gemini-1.5-pro-002" # Use your confirmed model
-CLAUDE_MODEL_NAME = "claude-3-7-sonnet-20240307" # Default Claude model
+CLAUDE_MODEL_NAME = "claude-3-7-sonnet-20250219" # Default Claude model
 
 # Rate limit for Traffic Cop calls
 last_traffic_cop_call_time = 0.0

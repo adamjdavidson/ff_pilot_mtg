@@ -92,7 +92,7 @@ let customAgents = [];
 // Store for available LLM models
 let availableModels = {
     "gemini": ["gemini-1.5-pro-002"],
-    "claude": ["claude-3-7-sonnet-20240307"]
+    "claude": ["claude-3-7-sonnet-20250219"]
 };
 
 // Track active model
