@@ -13,7 +13,7 @@ async def run_product_agent(text: str, model: GenerativeModel, broadcaster: call
     wildly new AI-enabled products/services, providing rough estimates for them.
     Assumes the input text has already been deemed relevant by the traffic cop.
     """
-    agent_name = "Wild Product Agent"
+    agent_name = "Product Agent"
     logger.info(f">>> Running {agent_name} Agent...")
     if not model: logger.error(f"[{agent_name}] Failed: Gemini model instance not provided."); return
     if not broadcaster: logger.critical(f"[{agent_name}] Failed: Broadcaster function not provided."); return
@@ -41,9 +41,9 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-Quantum Microbes Engineer Perfect Materials On-Demand
+🔬 Our bio-inspired sensors create an invisible layer of building intelligence
 
-Programmed bacteria colonies create any material with molecular precision, slashing manufacturing costs by 99.7%.
+🏙️ Physical spaces respond to inhabitants like living organisms, anticipating needs before they arise.
 
 🚀 **The Revolutionary Product:**
 [Describe a mind-blowing product concept that feels like science fiction but is technically feasible within 5-10 years. Be extremely specific about what it does and how it works.]
@@ -58,15 +58,17 @@ Programmed bacteria colonies create any material with molecular precision, slash
 [Explain how this product fundamentally changes human behavior or society. Include a bold, specific prediction.]
 
 REQUIREMENTS:
-1. Your headline MUST be a complete sentence with a shocking, specific product concept
-2. Your summary MUST include a specific number/statistic (90%, 100X, etc.)
-3. Your product must be technically feasible in 5-10 years but feel like science fiction
-4. Must solve a problem in a way no one has ever considered before
-5. Each section must be concrete and specific, not vague marketing speak
-6. ORIGINALITY IS CRITICAL: Your content must be COMPLETELY DIFFERENT from anything mentioned in the transcript - don't just extend or build on transcript ideas
-7. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
-8. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
-9. ALL claims must be supported with specific details - no vague assertions
+1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
+2. YOUR SUMMARY MUST ALSO START WITH AN EMOJI followed by a space
+3. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
+4. Keep the headline clear, exciting and sophisticated - around 10-15 words
+5. NO arbitrary metrics, percentages, or manufactured statistics
+6. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
+7. Be specific about the idea but use natural, passionate language
+8. Write from a place of genuine excitement about possibilities, not hype
+9. Each section should build on your central idea with specific details
+10. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
+11. Imagine "What would this look like executed brilliantly 3 years from now?"
 
 Format your output EXACTLY as shown in the example. Include emoji headers.
 

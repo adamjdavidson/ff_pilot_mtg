@@ -47,9 +47,9 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-Neural Implants Revolutionize Corporate Training Forever
+🚀 Our real-time market signals transform reactive businesses into predictive ones
 
-Brain interfaces reduce onboarding from months to minutes, boosting productivity 500%.
+Companies gain foresight where competitors only have hindsight.
 
 🔥 **Industry Targeted:** [Identify specific industry from transcript]
 
@@ -65,17 +65,16 @@ Brain interfaces reduce onboarding from months to minutes, boosting productivity
 [Explain why traditional players will collapse within 24 months - be specific about their vulnerabilities]
 
 REQUIREMENTS:
-1. Your headline MUST be a complete sentence with a strong subject and powerful verb
-2. Your summary MUST include a specific number/statistic (100X, 500%, etc.)
-3. Your idea must be technically feasible with near-future tech (5-10 years)
-4. Your disruption must completely replace an entire industry, not just improve it
-5. NEVER use buzzwords like "revolutionize, transform, optimize" in your actual final answer
-6. Each advantage must be shockingly specific, not generic platitudes
-7. The death spiral must describe EXACTLY why incumbents cannot adapt
-8. ORIGINALITY IS CRITICAL: Your idea must be COMPLETELY DIFFERENT from anything mentioned in the transcript - not just extending concepts from the transcript
-9. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
-10. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
-11. ALL claims must be supported with specific details - no vague assertions
+1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
+2. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
+3. Keep the headline clear, exciting and sophisticated - around 10-15 words
+4. NO arbitrary metrics, percentages, or manufactured statistics
+5. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
+6. Be specific about the idea but use natural, passionate language
+7. Write from a place of genuine excitement about possibilities, not hype
+8. Each section should build on your central idea with specific details
+9. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
+10. Imagine "What would this look like executed brilliantly 3 years from now?"
 
 Format your output EXACTLY as shown in the example. Include emoji headers.
 

@@ -47,9 +47,9 @@ TRANSCRIPT:
 
 RESPOND EXACTLY IN THIS FORMAT - DO NOT DEVIATE:
 
-Organic Intelligence Hives Replace Corporate Hierarchy 
+🌊 Our fluid team structures adapt instantly to the problem, not the org chart
 
-Neural-linked decision networks cut management overhead by 94% while quadrupling innovation rate.
+🧩 Teams form around challenges rather than reporting lines, creating natural expertise alignment.
 
 🌋 **Current Business Reality:** 
 [Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]
@@ -66,16 +66,17 @@ Neural-linked decision networks cut management overhead by 94% while quadrupling
 [Describe how human roles would be completely redefined in shocking but positive ways]
 
 REQUIREMENTS:
-1. Your headline MUST be a complete sentence with a mind-blowing organizational concept
-2. Your summary MUST include a specific number/statistic (90%, 8X, etc.)
-3. Idea must be technically feasible in 10-15 years but feel like science fiction
-4. Must COMPLETELY REIMAGINE organizational structure, not just improve current approach
-5. Must eliminate entire management layers or traditional business functions 
-6. Each advantage must be concrete and quantifiable, not vague
-7. ORIGINALITY IS CRITICAL: Your idea must be COMPLETELY DIFFERENT from anything mentioned in the transcript - not just extending concepts from the transcript
-8. Use clear, direct, engaging language throughout - NO corporate jargon, buzzwords, or fluffy marketing language
-9. Every sentence must be grammatically perfect, clear, and direct - write like a top science journalist
-10. ALL claims must be supported with specific details - no vague assertions
+1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
+2. YOUR SUMMARY MUST ALSO START WITH AN EMOJI followed by a space
+3. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
+4. Keep the headline clear, exciting and sophisticated - around 10-15 words
+5. NO arbitrary metrics, percentages, or manufactured statistics
+6. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
+7. Be specific about the idea but use natural, passionate language
+8. Write from a place of genuine excitement about possibilities, not hype
+9. Each section should build on your central idea with specific details
+10. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
+11. Imagine "What would this look like executed brilliantly 3 years from now?"
 
 Format your output EXACTLY as shown in the example. Include emoji headers.
 
