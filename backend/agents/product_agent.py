@@ -45,13 +45,16 @@ Review this meeting transcript:
 "{text}"
 
 IMPORTANT GUIDELINES:
+- YOUR HEADLINE MUST START WITH AN EMOJI followed by a space (do NOT put the headline in quotes)
 - Make a DIRECT connection to topics mentioned in the transcript
 - Be specific and concrete about how the product functions
 - Focus on practical usefulness rather than science fiction concepts
 - Use clear, straightforward language without marketing hype
-- Avoid buzzwords, vague claims, and imaginary statistics 
+- Avoid buzzwords, vague claims, and imaginary statistics
+- ABSOLUTELY NO STATISTICS: Do not use ANY percentages, multipliers (2x, 10x), or specific metrics
 - Describe something that could realistically be built by a startup
 - NEVER repeat product ideas you've generated before
+- FOR THE SUMMARY: Create a completely fresh description, do not repeat the headline
 - Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business-relevant content
 
 {prompt}"""

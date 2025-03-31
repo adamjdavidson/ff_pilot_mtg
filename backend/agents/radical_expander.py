@@ -34,8 +34,8 @@ async def run_radical_expander(text: str, claude_client, broadcaster: callable):
     
     prompt = STANDARDIZED_PROMPT_FORMAT.format(
         specific_content=specific_content,
-        headline="Create a headline for a revolutionary organizational structure (10-15 words)",
-        analysis="**Current Business Reality:** \n[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]\n\n🚀 **The Radical Transformation:**\n[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]\n\n⚡ **Extinction-Level Advantages:**\n• Processing advantage: [How this new structure processes information/decisions 100X faster]\n• Resource advantage: [How this eliminates 90%+ of traditional overhead/costs]\n• Adaptation advantage: [How this structure evolves itself without human intervention]\n\n🔮 **Human Impact:**\n[Describe how human roles would be completely redefined in shocking but positive ways]"
+        headline="Create a concise, thought-provoking headline for a revolutionary organizational structure (10-15 words)",
+        analysis="**Current Business Reality:** \n[Identify a specific business process/structure from the transcript and describe its conventional approach in 1-2 sentences]\n\n🚀 **The Radical Transformation:**\n[Describe in detail a completely revolutionary organizational structure that would replace it. Be extremely specific about how it works.]\n\n⚡ **Key Advantages:**\n• Process improvement: [How this new structure fundamentally changes information flow or decision-making]\n• Resource efficiency: [How this reimagines traditional overhead or resource allocation]\n• Adaptation capability: [How this structure adapts to changing conditions]\n\n🔮 **Human Impact:**\n[Describe how human roles would be completely redefined in thought-provoking but positive ways]"
     )
     
     # Add the transcript context with specific guidelines
@@ -45,16 +45,17 @@ Review this meeting transcript:
 "{text}"
 
 IMPORTANT GUIDELINES:
-1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space
+1. YOUR HEADLINE MUST START WITH AN EMOJI followed by a space (do NOT put the headline in quotes)
 2. Write like a brilliant, excited entrepreneur sharing their vision - not like corporate marketing
 3. Keep the headline clear, exciting and sophisticated - around 10-15 words
-4. NO arbitrary metrics, percentages, or manufactured statistics
+4. ABSOLUTELY NO STATISTICS: Do not use ANY percentages, multipliers (2x, 10x), or specific metrics
 5. NO buzzwords like "revolutionize," "transform," "disrupt," "optimize," etc.
 6. Be specific about the idea but use natural, passionate language
 7. Write from a place of genuine excitement about possibilities, not hype
 8. ORIGINALITY IS CRITICAL: Your idea must be completely different from the transcript
 9. Imagine "What would this look like executed brilliantly 3 years from now?"
-10. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business process or structure to identify
+10. FOR THE SUMMARY: Create a completely fresh description, do not repeat the headline
+11. Only respond with "NO_BUSINESS_CONTEXT" (exactly like that) if there is absolutely no business process or structure to identify
 
 {prompt}"""
 
