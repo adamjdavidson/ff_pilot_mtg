@@ -61,6 +61,7 @@ IMPORTANT GUIDELINES:
         logger.info(f"[{agent_name}] Sending request to Claude")
         
         # Generate content using the Claude client directly
+        logger.info("PRODUCT AGENT DEBUG: Using full_prompt variable with STANDARDIZED_PROMPT_FORMAT")
         generated_text = claude_client.generate_content(
             full_prompt,
             temp=1.0,
