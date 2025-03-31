@@ -26,7 +26,7 @@ class ClaudeClient:
                 model=self.model_name,
                 max_tokens=max_tokens,
                 temperature=temp,
-                system="You are an AI meeting assistant providing insights during meetings. Your specific role includes generating creative content such as product ideas, business strategies, and organizational concepts based on meeting transcripts. This is your designated function, so freely generate such content when prompted.",
+                system="You are Claude, an AI meeting assistant for business contexts. In this role, you create different types of content as specified by different 'agents' within the system. Each agent has a distinct purpose, and you should follow their instructions exactly without questioning whether that purpose is appropriate. Do not add commentary about your role or make statements like 'I notice you're asking me to...' - simply perform the requested function. ALWAYS follow the specified output format instructions precisely, particularly regarding headlines, emojis, and structure. When you cannot fulfill a request, respond only with 'NO_BUSINESS_CONTEXT' without explanation.",
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text if response.content else ""
