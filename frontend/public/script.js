@@ -8,7 +8,7 @@ const filterButtons = document.querySelectorAll('.filter-btn');
 const clearSavedBtn = document.getElementById('clear-saved');
 
 // WebSocket URL - Make sure this matches your backend
-const wsUrl = "wss://backend-272134414140.us-east1.run.app/ws";
+const wsUrl = "wss://meeting-assistant-backend-272134414140.us-east1.run.app/ws";
 
 // Sound file paths
 const soundPaths = {
